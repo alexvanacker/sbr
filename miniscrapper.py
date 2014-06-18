@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import requests
+import re
 from bs4 import BeautifulSoup
 
 
@@ -50,6 +51,59 @@ def get_styles_url_and_names():
 
     return global_list
 
+
+def make_soup(url):
+    r = requests.get(url)
+    contents = r.content
+    soup = BeautifulSoup(contents)
+    return soup
+
+
+def find_max(url):
+    soup = make_soup(url)
+    st = soup.body.findAll(id='baContent')[0].table.td.span.b.contents[0]
+    m = re.search('\(out of (.+?)\)', st)
+    if m:
+        found = m.group(1)
+    else:
+        print "FUUUUUUUUCKKKKK"
+    return found
+
+
+def get_substyle_url(url):
+    '''
+    From a style get all the page of the style
+    '''
+    substyle_urls = []
+    start = 0
+    mymax = int(find_max(url))
+    while start < mymax:
+        substyle_urls.append(url + '?start=' + str(start))
+        start = start + 50
+    return substyle_urls
+
+
+def get_all_beers_from_substyle(substyle_url):
+    root_url = 'http://www.beeradvocate.com/'
+    soup = make_soup(substyle_url)
+    st = soup.find(id='baContent')
+    url_list = []
+    links = st.find_all('a')
+    for link in links:
+        if is_beer_profile(link):
+            beer_profile_url = link['href']
+            full_beer_url = root_url + beer_profile_url
+            url_list.append(full_beer_url)
+    return url_list
+
+
+def is_beer_profile(tag):
+    url = tag['href']
+    m = re.search('beer/profile/(.+)/(.+)/$', url)
+    return m
+
 if __name__ == '__main__':
-    ulrs_tuples = get_styles_url_and_names()
-    print str(ulrs_tuples)
+    style_dict = get_styles_url_and_names()
+    for style_url in style_dict.keys():
+        list_beer = get_all_beers_from_substyle(style_url)
+        print str(list_beer)

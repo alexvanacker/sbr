@@ -102,8 +102,30 @@ def is_beer_profile(tag):
     m = re.search('beer/profile/(.+)/(.+)/$', url)
     return m
 
+
+def get_beer_name(profile_page_soup):
+    title_bar = profile_page_soup.find(class_='titleBar')
+    h1 = title_bar.h1
+    return h1.contents[0]
+
+
+def get_beer_comments_and_ratings(beer_profile_url):
+    #TODO
+    pass
+
+
+def get_beer_stats(profile_page_soup):
+    main_div = profile_page_soup.find(id='baContent')
+    # TODO
+
+
+def parse_beer_profile(beer_profile_url):
+    show_all_ratings_url_suffix = '?show_ratings=Y'
+    with_ratings_url = beer_profile_url + show_all_ratings_url_suffix
+    soup = make_soup(with_ratings_url)
+    beer_name = get_beer_name(soup)
+    print beer_name
+
+
 if __name__ == '__main__':
-    style_dict = get_styles_url_and_names()
-    for style_url in style_dict.keys():
-        list_beer = get_all_beers_from_substyle(style_url)
-        print str(list_beer)
+    parse_beer_profile('http://www.beeradvocate.com/beer/profile/16315/61128/')

@@ -53,7 +53,11 @@ def get_styles_url_and_names():
 
 
 def make_soup(url):
+    '''
+    Get soup object from url
+    '''
     r = requests.get(url)
+    # FIXME test if response code is OK!
     contents = r.content
     soup = BeautifulSoup(contents)
     return soup
@@ -72,7 +76,7 @@ def find_max(url):
 
 def get_substyle_url(url):
     '''
-    From a style get all the page of the style
+    From a style get all the pages of the style
     '''
     substyle_urls = []
     start = 0
@@ -110,7 +114,7 @@ def get_beer_name(profile_page_soup):
 
 
 def get_beer_comments_and_ratings(beer_profile_url):
-    #TODO
+    # TODO
     pass
 
 

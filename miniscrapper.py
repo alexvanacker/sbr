@@ -59,7 +59,7 @@ def make_soup(url):
     r = requests.get(url)
     # FIXME test if response code is OK!
     contents = r.content
-    soup = BeautifulSoup(contents)
+    soup = BeautifulSoup(contents, "html5lib") #HTML5 cuz this site be trippin'
     return soup
 
 
@@ -187,7 +187,56 @@ def count_number_of_beers():
         total += style_number
 
     print 'Total number of beers: '+str(total)
+    return total
+
+def count_number_of_ratings_and_comments_for_beer_url(beer_url):
+    '''
+    Returns a tuple (nb_ratings, nb_comments), representing the 
+    number of ratings and comments for a given beer page.
+    '''
+    soup = make_soup(beer_url)
+    ba_content = soup.find(id='baContent')
+    divs = ba_content.find_all('div',recursive=False, limit=6)
+    last_div = divs[5]
+    text = last_div.get_text()
+    nb_ratings = 0
+    nb_reviews = 0
+
+    # now parse it
+    match_nb_ratings = re.search('Ratings: (\d+)?', text)
+    if match_nb_ratings:
+        nb_ratings = int(match_nb_ratings.group(1))
+
+    match_nb_reviews = re.search('Reviews: (\d+)?', text)
+    if match_nb_reviews:
+        nb_reviews = int(match_nb_reviews.group(1))
+    print (nb_ratings, nb_reviews)
+    return (nb_ratings, nb_reviews)
+    #print soup.prettify()
+    
+
+
+def count_number_of_ratings_and_comments():
+    '''
+    Returns a tuple [nb_ratings, nb_comments] representing the
+    total number of ratings and comments on beeradvocate.
+    '''
+    dict_url_styles = get_styles_url_and_names()
+    total_reviews = 0
+    total_ratings = 0 
+    for url in dict_url_styles.keys():
+        beer_urls = get_all_beers_from_substyle(url)
+        for beer_url in beer_urls:
+            (nb_ratings, nb_reviews) = count_number_of_ratings_and_comments_for_beer_url(beer_url)
+            total_ratings += nb_ratings
+            total_reviews += nb_reviews
+    return (total_ratings, total_reviews)
+
+
+
 
 if __name__ == '__main__':
-    count_number_of_beers()
+    #count_number_of_beers()
+    count_number_of_ratings_and_comments()
+    #count_number_of_ratings_and_comments_for_beer_url('http://www.beeradvocate.com/beer/profile/302/73119/')
     #parse_beer_profile('http://www.beeradvocate.com/beer/profile/16315/61128/')

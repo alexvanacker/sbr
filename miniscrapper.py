@@ -119,8 +119,54 @@ def get_beer_comments_and_ratings(beer_profile_url):
 
 
 def get_beer_stats(profile_page_soup):
+
+    infos_dict = {}
+
     main_div = profile_page_soup.find(id='baContent')
-    # TODO
+    stats_tr = main_div.table.tr.find_all('td')[1].find('tr')
+    real_stats_tr = stats_tr.find('tr')
+    stats_td_list = real_stats_tr.find_all('td', recursive=False)
+    
+    if len(stats_td_list) < 3:
+        print 'Error on profile page, not enough columns'
+    # first td is BA score
+    ba_score_td = stats_td_list[0]
+
+    # second is Bros score -> useless
+    bros_score_td = stats_td_list[1]
+
+    # Third is summary with number of ratings, number of reviews, etc
+    # Structure from 2014_06_18:
+    # <td width="33%" align="left" valign="top" style="padding-left:10px;">
+    #    Ratings: 430<br>Reviews: 238<br>rAvg: 4.04<!--<br>psDev: 10.6%-->
+    #    <br>pDev: 13.12%
+    #    <br><a href="/beer/trade/61128/?view=W">Wants: 14</a>
+    #    <br><a href="/beer/trade/61128/?view=G">Gots: 37</a> | <a href="/beer/trade/61128/?view=FT">FT: 1</a>
+    #    </td>
+    summary_td = stats_td_list[2]
+    td_text = summary_td.get_text()
+    match_nb_ratings = re.search('Ratings: (\d+)?', td_text)
+    if match_nb_ratings:
+        nb_ratings =  match_nb_ratings.group(1)
+        infos_dict['nb_ratings'] = nb_ratings
+    
+    match_nb_reviews = re.search('Reviews: (\d+)?', td_text)
+    if match_nb_reviews:
+        nb_reviews = match_nb_reviews.group(1)
+        infos_dict['nb_reviews'] = nb_reviews
+
+    match_r_avg = re.search('rAvg: (\d+\.?\d*)?', td_text)
+    if match_r_avg:
+        r_avg = match_r_avg.group(1)
+        infos_dict['r_avg'] = r_avg
+
+    match_p_dev = re.search('pDev: (\d+\.?\d*)?', td_text)
+    if match_p_dev:
+        p_dev = match_p_dev.group(1)
+        infos_dict['p_dev'] = p_dev
+    #print str(sullary_contents)
+
+    print str(infos_dict)
 
 
 def parse_beer_profile(beer_profile_url):
@@ -128,7 +174,7 @@ def parse_beer_profile(beer_profile_url):
     with_ratings_url = beer_profile_url + show_all_ratings_url_suffix
     soup = make_soup(with_ratings_url)
     beer_name = get_beer_name(soup)
-    print beer_name
+    get_beer_stats(soup)
 
 
 if __name__ == '__main__':

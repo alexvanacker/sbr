@@ -88,23 +88,22 @@ def get_substyle_url(url):
 
 
 def get_all_beers_from_substyle(substyle_url):
+    '''
+    Return all the beers from a substyle URL.
+    '''
     root_url = 'http://www.beeradvocate.com/'
-    soup = make_soup(substyle_url)
-    st = soup.find(id='baContent')
     url_list = []
-    links = st.find_all('a')
-    for link in links:
-        if is_beer_profile(link):
+    substyle_urls = get_substyle_url(substyle_url) # Get list of all pages for the substyle which contains all beers!
+    
+    for page_url in substyle_urls:
+        soup = make_soup(page_url)
+        links = soup.find_all(href=re.compile('beer/profile/(.+)/(.+)/$'))
+        for link in links:
             beer_profile_url = link['href']
             full_beer_url = root_url + beer_profile_url
             url_list.append(full_beer_url)
+
     return url_list
-
-
-def is_beer_profile(tag):
-    url = tag['href']
-    m = re.search('beer/profile/(.+)/(.+)/$', url)
-    return m
 
 
 def get_beer_name(profile_page_soup):
@@ -177,5 +176,18 @@ def parse_beer_profile(beer_profile_url):
     get_beer_stats(soup)
 
 
+def count_number_of_beers():
+    dict_url_styles = get_styles_url_and_names()
+    total = 0
+    for url in dict_url_styles.keys():
+        substyle_name = dict_url_styles[url][0]
+        beer_urls = get_all_beers_from_substyle(url)
+        style_number = len(beer_urls)
+        print substyle_name + ': ' + str(style_number)
+        total += style_number
+
+    print 'Total number of beers: '+str(total)
+
 if __name__ == '__main__':
-    parse_beer_profile('http://www.beeradvocate.com/beer/profile/16315/61128/')
+    count_number_of_beers()
+    #parse_beer_profile('http://www.beeradvocate.com/beer/profile/16315/61128/')

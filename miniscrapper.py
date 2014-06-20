@@ -3,6 +3,7 @@
 
 import requests
 import time
+import sys
 import re
 from bs4 import BeautifulSoup
 
@@ -14,11 +15,7 @@ def get_styles_url_and_names():
 
     root_page = 'http://www.beeradvocate.com'
     current_page = 'http://www.beeradvocate.com/beer/style/'
-    r = requests.get(current_page)
-
-    contents = r.content
-    soup = BeautifulSoup(contents)
-
+    soup = make_soup(current_page)
     body = soup.body
     table = body.table
     first_tr = table.tr
@@ -58,6 +55,9 @@ def make_soup(url):
     Get soup object from url
     '''
     r = requests.get(url)
+    if r.status_code != requests.codes.ok:
+        print 'Error: status code is ' + str(r.status_code) + ' for URL: ' + url
+        sys.exit(1)
     # FIXME test if response code is OK!
     contents = r.content
     soup = BeautifulSoup(contents, 'html5lib')  # HTML5 cuz this site be trippin'

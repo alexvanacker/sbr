@@ -79,9 +79,10 @@ def get_styles_url_and_names():
 
 
 def make_soup(url):
-    '''
-    Get soup object from url
-    '''
+    """Get soup object from url
+
+    Currently based on lxml parser for speed. 
+    """
     r = requests.get(url)
     if r.status_code != requests.codes.ok:
         print 'Error: status code is ' + str(r.status_code) + ' for URL: ' + url
@@ -105,9 +106,9 @@ def find_max(url):
 
 
 def get_substyle_url(url):
-    '''
-    From a style get all the pages of the style
-    '''
+    """From a style get all the pages of the style
+
+    """
     substyle_urls = []
     start = 0
     mymax = int(find_max(url))
@@ -118,9 +119,10 @@ def get_substyle_url(url):
 
 
 def get_all_beers_from_substyle(substyle_url):
-    '''
-    Return all the beers from a substyle URL.
-    '''
+    """Return all the beers from a substyle URL.
+
+    List is made by jumping from page to page
+    """
     root_url = 'http://www.beeradvocate.com/'
     url_list = []
     # Get list of all pages for the substyle which contains all beers!
@@ -269,10 +271,11 @@ def count_number_of_ratings_and_comments_for_beer_url(beer_url):
 
 
 def count_number_of_ratings_and_comments():
-    '''
+    """Return number of ratings and comments from a beer page.
+
     Returns a tuple [nb_ratings, nb_comments] representing the
     total number of ratings and comments on beeradvocate.
-    '''
+    """
     dict_url_styles = get_styles_url_and_names()
     total_reviews = 0
     total_ratings = 0
@@ -311,4 +314,3 @@ def count_number_of_ratings_and_comments():
 if __name__ == '__main__':
     setup_logging()
     logger = logging.getLogger('miniscrapper')
-

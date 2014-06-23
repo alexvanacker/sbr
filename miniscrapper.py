@@ -23,7 +23,7 @@ try:
     test_soup = BeautifulSoup('<html></html>', parser)
 except FeatureNotFound:
     # print because logger may not be defined at this stage
-    print parser +' not found, switching to '+parser_2
+    print parser + ' not found, switching to '+parser_2
     parser = parser_2
     test_soup = BeautifulSoup('<html></html>', parser)
 
@@ -94,7 +94,7 @@ def get_styles_url_and_names():
 def make_soup(url):
     """Get soup object from url
 
-    Currently based on lxml parser for speed. 
+    Currently based on lxml parser for speed.
     """
     r = requests.get(url)
     if r.status_code != requests.codes.ok:
@@ -173,7 +173,8 @@ def get_beer_stats(profile_page_soup):
     stats_td_list = real_stats_tr.find_all('td', recursive=False)
 
     if len(stats_td_list) < 3:
-        print 'Error on profile page, not enough columns'
+        logger.error('Error on profile page, not enough columns')
+        raise
     # first td is BA score
     ba_score_td = stats_td_list[0]
 
@@ -190,12 +191,12 @@ def get_beer_stats(profile_page_soup):
     #    </td>
     summary_td = stats_td_list[2]
     td_text = summary_td.get_text()
-    match_nb_ratings = re.search('Ratings: (\d+)?', td_text)
+    match_nb_ratings = re.search('Ratings: (\d+,?\d*)?', td_text)
     if match_nb_ratings:
         nb_ratings = match_nb_ratings.group(1)
         infos_dict['nb_ratings'] = nb_ratings
 
-    match_nb_reviews = re.search('Reviews: (\d+)?', td_text)
+    match_nb_reviews = re.search('Reviews: (\d+,?\d*)?', td_text)
     if match_nb_reviews:
         nb_reviews = match_nb_reviews.group(1)
         infos_dict['nb_reviews'] = nb_reviews
@@ -209,7 +210,6 @@ def get_beer_stats(profile_page_soup):
     if match_p_dev:
         p_dev = match_p_dev.group(1)
         infos_dict['p_dev'] = p_dev
-    #print str(sullary_contents)
 
     print str(infos_dict)
 

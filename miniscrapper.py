@@ -5,13 +5,41 @@ import requests
 import time
 import sys
 import re
+import logging
+import logging.config
+import os
+import json
 from bs4 import BeautifulSoup
 
 
+logger = logging.getLogger(__name__)
+
+
+def setup_logging(
+    default_path='logging.json',
+    default_level=logging.INFO,
+    env_key='LOG_CFG'
+):
+    """Setup logging configuration
+
+    """
+    path = default_path
+    value = os.getenv(env_key, None)
+    if value:
+        path = value
+    if os.path.exists(path):
+        f = open(path, 'rt')
+        config = json.load(f)
+        logging.config.dictConfig(config=config)
+    else:
+        logging.basicConfig(level=default_level)
+
+
 def get_styles_url_and_names():
-    '''
+    """Get beer style URL
+
     Returns a dict linking an url to a beer style and its global type
-    '''
+    """
 
     root_page = 'http://www.beeradvocate.com'
     current_page = 'http://www.beeradvocate.com/beer/style/'
@@ -58,9 +86,9 @@ def make_soup(url):
     if r.status_code != requests.codes.ok:
         print 'Error: status code is ' + str(r.status_code) + ' for URL: ' + url
         sys.exit(1)
-    # FIXME test if response code is OK!
     contents = r.content
-    soup = BeautifulSoup(contents, 'html5lib')  # HTML5 cuz this site be trippin'
+    # HTML5 cuz this site be trippin'
+    soup = BeautifulSoup(contents, 'lxml')
     return soup
 
 
@@ -71,7 +99,8 @@ def find_max(url):
     if m:
         found = m.group(1)
     else:
-        print "FUUUUUUUUCKKKKK"
+        logger.error('Could not extract max number of subpages: '+url)
+        raise Exception
     return found
 
 
@@ -94,7 +123,8 @@ def get_all_beers_from_substyle(substyle_url):
     '''
     root_url = 'http://www.beeradvocate.com/'
     url_list = []
-    substyle_urls = get_substyle_url(substyle_url) # Get list of all pages for the substyle which contains all beers!
+    # Get list of all pages for the substyle which contains all beers!
+    substyle_urls = get_substyle_url(substyle_url)
 
     for page_url in substyle_urls:
         soup = make_soup(page_url)
@@ -174,20 +204,27 @@ def parse_beer_profile(beer_profile_url):
     with_ratings_url = beer_profile_url + show_all_ratings_url_suffix
     soup = make_soup(with_ratings_url)
     beer_name = get_beer_name(soup)
+    #TODO
     get_beer_stats(soup)
 
 
 def count_number_of_beers():
+    logger.info('Counting number of beers...')
     dict_url_styles = get_styles_url_and_names()
     total = 0
     for url in dict_url_styles.keys():
-        substyle_name = dict_url_styles[url][0]
+        real_nb_beers = int(find_max(url))
         beer_urls = get_all_beers_from_substyle(url)
         style_number = len(beer_urls)
-        print substyle_name + ': ' + str(style_number)
+        if style_number != real_nb_beers:
+            logger.error('Error: wrong number of beers detected')
+            logger.error('Expected: ' + str(real_nb_beers) + ' found: ' + str(style_number))
+            logger.error('URL: '+url)
+            raise
+        # print substyle_name + ': ' + str(style_number)
         total += style_number
 
-    print 'Total number of beers: '+str(total)
+    logger.info('Total number of beers: '+str(total))
     return total
 
 
@@ -209,7 +246,7 @@ def count_number_of_ratings_and_comments_for_beer_url(beer_url):
     match_nb_ratings = re.search('Ratings: (\d+,?\d*)?', text)
     match_nb_reviews = re.search('Reviews: (\d+,?\d*)?', text)
     beer_name = get_beer_name(soup)
-    print 'Counting for ' + beer_name
+    logger.debug('Counting for ' + beer_name)
     try:
         if match_nb_ratings:
             nb_ratings = int(match_nb_ratings.group(1).replace(',', ''))
@@ -218,16 +255,16 @@ def count_number_of_ratings_and_comments_for_beer_url(beer_url):
             nb_reviews = int(match_nb_reviews.group(1).replace(',', ''))
 
         if nb_ratings < nb_reviews:
-            print 'More ratings than reviews: '+beer_name
+            logger.warn('More ratings than reviews: '+beer_name)
 
-        print (nb_ratings, nb_reviews)
+        logger.debug(nb_ratings, nb_reviews)
         return (nb_ratings, nb_reviews)
 
     except Exception:
-        print 'Error on beer: ' + beer_name
-        print 'text: '+text
-        print match_nb_ratings.group(1)
-        print match_nb_reviews.group(1)
+        logger.error('Error on beer: ' + beer_name)
+        logger.error('text: '+text)
+        logger.error(match_nb_ratings.group(1))
+        logger.error(match_nb_reviews.group(1))
         raise
 
 
@@ -241,28 +278,37 @@ def count_number_of_ratings_and_comments():
     total_ratings = 0
     total_time = 0
     count = 0
+    iteration = 100
+    all_beer_urls = []
+    logger.info('Fetching all beer URLs...')
     for url in dict_url_styles.keys():
-        beer_urls = get_all_beers_from_substyle(url)
-        for beer_url in beer_urls:
-            count += 1
-            start = time.time()
-            (nb_ratings, nb_reviews) = count_number_of_ratings_and_comments_for_beer_url(beer_url)
-            end = time.time()
-            beer_time = end - start
-            total_time += beer_time
-            if count % 10 == 0:
-                avg_time = total_time / 10
-                total_time = 0
-                print 'Average time per beer: ' + str(avg_time)
-            total_ratings += nb_ratings
-            total_reviews += nb_reviews
+        logger.info('Fetching beers from style: ' + url)
+        all_beer_urls.extend(get_all_beers_from_substyle(url))
+
+    logger.info('Number of beers: ' + str(len(all_beer_urls)))
+
+    for beer_url in all_beer_urls:
+        count += 1
+        start = time.time()
+        (nb_ratings, nb_reviews) = \
+            count_number_of_ratings_and_comments_for_beer_url(beer_url)
+
+        end = time.time()
+        beer_time = end - start
+        total_time += beer_time
+        if count % iteration == 0:
+            avg_time = total_time / iteration
+            total_time = 0
+            logger.debug('Average time per beer: ' + str(avg_time))
+        total_ratings += nb_ratings
+        total_reviews += nb_reviews
+
+    logger.info('Total number of ratings: ' + str(total_ratings))
+    logger.info('Total number of reviews: ' + str(total_reviews))
     return (total_ratings, total_reviews)
 
 
 if __name__ == '__main__':
-    #count_number_of_beers()
-    count_number_of_ratings_and_comments()
+    setup_logging()
+    logger = logging.getLogger('miniscrapper')
 
-    # Keep for Tests!
-    # count_number_of_ratings_and_comments_for_beer_url('http://www.beeradvocate.com/beer/profile/26520/115426/')
-    #parse_beer_profile('http://www.beeradvocate.com/beer/profile/16315/61128/')

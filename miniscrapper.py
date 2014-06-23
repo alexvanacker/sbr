@@ -10,9 +10,22 @@ import logging.config
 import os
 import json
 from bs4 import BeautifulSoup
+from bs4 import FeatureNotFound
 
 
 logger = logging.getLogger(__name__)
+
+# Define which parser to use
+parser_1 = 'libxml'
+parser_2 = 'html5'
+parser = parser_1
+try:
+    test_soup = BeautifulSoup('<html></html>', parser)
+except FeatureNotFound:
+    # print because logger may not be defined at this stage
+    print parser +' not found, switching to '+parser_2
+    parser = parser_2
+    test_soup = BeautifulSoup('<html></html>', parser)
 
 
 def setup_logging(
@@ -88,8 +101,8 @@ def make_soup(url):
         print 'Error: status code is ' + str(r.status_code) + ' for URL: ' + url
         sys.exit(1)
     contents = r.content
-    # HTML5 cuz this site be trippin'
-    soup = BeautifulSoup(contents, 'lxml')
+
+    soup = BeautifulSoup(contents, parser)
     return soup
 
 
@@ -210,6 +223,16 @@ def parse_beer_profile(beer_profile_url):
     get_beer_stats(soup)
 
 
+def fast_count_number_of_beers():
+    logger.info('Fast counting number of beers...')
+    dict_url_styles = get_styles_url_and_names()
+    total = 0
+    for url in dict_url_styles.keys():
+        real_nb_beers = int(find_max(url))
+        total += real_nb_beers
+    logger.info('Total number of beers: '+str(total))
+    return total
+
 def count_number_of_beers():
     logger.info('Counting number of beers...')
     dict_url_styles = get_styles_url_and_names()
@@ -314,3 +337,8 @@ def count_number_of_ratings_and_comments():
 if __name__ == '__main__':
     setup_logging()
     logger = logging.getLogger('miniscrapper')
+    start = time.time()
+    fast_count_number_of_beers()
+    end = time.time()
+    total_time = end - start
+    logger.info('Time elapsed: '+str(total_time))

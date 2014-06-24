@@ -9,6 +9,8 @@ import logging
 import logging.config
 import os
 import json
+import random
+import pickle
 from bs4 import BeautifulSoup
 from bs4 import FeatureNotFound
 
@@ -16,8 +18,8 @@ from bs4 import FeatureNotFound
 logger = logging.getLogger(__name__)
 
 # Define which parser to use
-parser_1 = 'libxml'
-parser_2 = 'html5'
+parser_1 = "lxml"
+parser_2 = "html5lib"
 parser = parser_1
 try:
     test_soup = BeautifulSoup('<html></html>', parser)
@@ -158,11 +160,6 @@ def get_beer_name(profile_page_soup):
     return h1.contents[0]
 
 
-def get_beer_comments_and_ratings(beer_profile_url):
-    # TODO
-    pass
-
-
 def get_beer_stats(profile_page_soup):
 
     infos_dict = {}
@@ -293,52 +290,94 @@ def count_number_of_ratings_and_comments_for_beer_url(beer_url):
         raise
 
 
-def count_number_of_ratings_and_comments():
-    """Return number of ratings and comments from a beer page.
+def get_all_beers_urls():
+    url_list = []
+    for style_url in get_styles_url_and_names().keys():
+        url_list.extend(get_all_beers_from_substyle(style_url))
+    return url_list
 
-    Returns a tuple [nb_ratings, nb_comments] representing the
-    total number of ratings and comments on beeradvocate.
-    """
-    dict_url_styles = get_styles_url_and_names()
-    total_reviews = 0
-    total_ratings = 0
-    total_time = 0
-    count = 0
-    iteration = 100
-    all_beer_urls = []
-    logger.info('Fetching all beer URLs...')
-    for url in dict_url_styles.keys():
-        logger.info('Fetching beers from style: ' + url)
-        all_beer_urls.extend(get_all_beers_from_substyle(url))
 
-    logger.info('Number of beers: ' + str(len(all_beer_urls)))
+def get_beer_comments_and_ratings(beer_profile_url):
+    soup_making_start = time.time()
+    soup = make_soup(beer_profile_url)
+    soup_making_time = time.time() - soup_making_start
+    logger.debug('Time for soup making: ' + str(soup_making_time))
 
-    for beer_url in all_beer_urls:
-        count += 1
+
+def parsers_compare(url):
+    try:
+        parser_1 = 'lxml'
+        parser_2 = 'html5lib'
+        parser_3 = 'html.parser'
+        r = requests.get(url)
+        if r.status_code != requests.codes.ok:
+            print 'Error: status code is ' + str(r.status_code) + ' for URL: ' + url
+            sys.exit(1)
+        contents = r.content
+        start_1 = time.time()
+        soup = BeautifulSoup(contents, parser_1)
+        time_1 = time.time() - start_1
+        logger.info('Parser: ' + parser_1 + ' time: ' + str(time_1))
+
+        start_2 = time.time()
+        soup = BeautifulSoup(contents, parser_2)
+        time_2 = time.time() - start_2
+        logger.info('Parser: ' + parser_2 + ' time: ' + str(time_2))
+
+        start_3 = time.time()
+        soup = BeautifulSoup(contents, parser_3)
+        time_3 = time.time() - start_3
+        logger.info('Parser: ' + parser_3 + ' time: ' + str(time_3))
+
+        return (time_1, time_2, time_3)
+    except:
+        logger.error('Error handling URL: ' + str(url))
+        raise
+
+
+def parsers_compare_main():
+    if os.path.exists('beers'):
+        logger.info('Loading beer URL list from file')
+        beer_urls = pickle.load(open('beers', 'rb'))
+    else:
         start = time.time()
-        (nb_ratings, nb_reviews) = \
-            count_number_of_ratings_and_comments_for_beer_url(beer_url)
-
+        beer_urls = get_all_beers_urls()
         end = time.time()
-        beer_time = end - start
-        total_time += beer_time
-        if count % iteration == 0:
-            avg_time = total_time / iteration
-            total_time = 0
-            logger.debug('Average time per beer: ' + str(avg_time))
-        total_ratings += nb_ratings
-        total_reviews += nb_reviews
+        total_time = end - start
+        logger.info('Time fetching URLs: '+str(total_time))
+        outfile = open('beers', 'wb')
+        pickle.dump(beer_urls, outfile)
 
-    logger.info('Total number of ratings: ' + str(total_ratings))
-    logger.info('Total number of reviews: ' + str(total_reviews))
-    return (total_ratings, total_reviews)
+    print str(beer_urls)
+    max_iter = 10
+    total_t_1 = 0
+    total_t_2 = 0
+    total_t_3 = 0
+
+    for i in range(max_iter):
+        beer_url = random.choice(beer_urls)
+        (time1, time2, time3) = parsers_compare(beer_url)
+        total_t_1 += time1
+        total_t_2 += time2
+        total_t_3 += time3
+
+    avg_t_1 = total_t_1 / max_iter
+    avg_t_2 = total_t_2 / max_iter
+    avg_t_3 = total_t_3 / max_iter
+
+    logger.info('Average time parser 1: ' + str(avg_t_1))
+    logger.info('Average time parser 2: ' + str(avg_t_2))
+    logger.info('Average time parser 3: ' + str(avg_t_3))
 
 
 if __name__ == '__main__':
     setup_logging()
     logger = logging.getLogger('miniscrapper')
     start = time.time()
-    fast_count_number_of_beers()
+    parsers_compare_main()
     end = time.time()
     total_time = end - start
     logger.info('Time elapsed: '+str(total_time))
+
+    # Test review/ratings extraction
+    # on http://www.beeradvocate.com/beer/profile/45/51480/

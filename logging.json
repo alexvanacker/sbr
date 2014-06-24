@@ -48,7 +48,7 @@
             "propagate": "no"
         },
         "miniscrapper": {
-            "level": "INFO",
+            "level": "DEBUG",
             "handlers": ["console"],
             "propagate": "no"
         },

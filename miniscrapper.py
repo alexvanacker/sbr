@@ -304,32 +304,28 @@ def get_beer_comments_and_ratings(beer_profile_url):
     logger.debug('Time for soup making: ' + str(soup_making_time))
 
 
-def parsers_compare(url):
+def parsers_compare(url, parser_list):
     try:
-        parser_1 = 'lxml'
-        parser_2 = 'html5lib'
-        parser_3 = 'html.parser'
+        times_list = []
+
         r = requests.get(url)
         if r.status_code != requests.codes.ok:
             print 'Error: status code is ' + str(r.status_code) + ' for URL: ' + url
             sys.exit(1)
         contents = r.content
-        start_1 = time.time()
-        soup = BeautifulSoup(contents, parser_1)
-        time_1 = time.time() - start_1
-        logger.info('Parser: ' + parser_1 + ' time: ' + str(time_1))
 
-        start_2 = time.time()
-        soup = BeautifulSoup(contents, parser_2)
-        time_2 = time.time() - start_2
-        logger.info('Parser: ' + parser_2 + ' time: ' + str(time_2))
+        for parser in parser_list:
+            start = time.time()
+            try:
+                soup = BeautifulSoup(contents, parser)
+            except:
+                logger.error('Parser could not be used: '+parser)
 
-        start_3 = time.time()
-        soup = BeautifulSoup(contents, parser_3)
-        time_3 = time.time() - start_3
-        logger.info('Parser: ' + parser_3 + ' time: ' + str(time_3))
+            soup_time = time.time() - start
+            times_list.append(soup_time)
 
-        return (time_1, time_2, time_3)
+        return times_list
+
     except:
         logger.error('Error handling URL: ' + str(url))
         raise
@@ -348,26 +344,26 @@ def parsers_compare_main():
         outfile = open('beers', 'wb')
         pickle.dump(beer_urls, outfile)
 
-    print str(beer_urls)
     max_iter = 10
-    total_t_1 = 0
-    total_t_2 = 0
-    total_t_3 = 0
+
+    parser_list = ['lxml', 'html5lib', 'html.parser']
+
+    total_times = [0 for p in parser_list]
 
     for i in range(max_iter):
         beer_url = random.choice(beer_urls)
-        (time1, time2, time3) = parsers_compare(beer_url)
-        total_t_1 += time1
-        total_t_2 += time2
-        total_t_3 += time3
+        time_list = parsers_compare(beer_url, parser_list)
+        for i in range(len(time_list)):
+            total_times[i] += time_list[i]
 
-    avg_t_1 = total_t_1 / max_iter
-    avg_t_2 = total_t_2 / max_iter
-    avg_t_3 = total_t_3 / max_iter
+    avg_times = [t/max_iter for t in total_times]
+    
+    index = 0
+    for avg_time in avg_times:
 
-    logger.info('Average time parser 1: ' + str(avg_t_1))
-    logger.info('Average time parser 2: ' + str(avg_t_2))
-    logger.info('Average time parser 3: ' + str(avg_t_3))
+        logger.info('Parser: '+parser_list[index]+' Average time: '+str(avg_time))
+        index += 1
+
 
 
 if __name__ == '__main__':

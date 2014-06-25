@@ -147,10 +147,27 @@ def get_beer_infos(beer_profile_url):
     beer_name = get_beer_name(soup)
     info_dict['name'] = beer_name
 
-    # Get photo URL
+    # Main info container
     main_div = soup.find(id='baContent')
-    photo_img = main_div.table.tr.td.find('img')
+    infos_tr = main_div.table.tr
+
+    # Get photo URL
+    photo_img = infos_tr.td.find('img')
     info_dict['image_url'] = photo_img['src']
+
+    # Warning: tbody not seen by lxml parser
+    infos_tbody = infos_tr.find_all('td', recursive=False)[1].table
+    infos_td = infos_tbody.find_all('tr', recursive=False)[1].td
+
+    # Rest of the info is in every child...
+    for child in infos_td.find_all(recursive=False):
+        if child.name == 'a':
+            # Brewery
+            if child['href'].find('beer/profile') > -1:
+                brewery = child.b.contents[0]
+                info_dict['brewery'] = brewery
+
+    return info_dict
 
 
 def fast_count_number_of_beers():

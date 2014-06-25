@@ -305,9 +305,6 @@ def get_all_beers_urls():
         for beer_url in style_beers_urls:
             url_list.append((beer_url, style, global_style))
 
-        if(len(url_list) > 10):
-            return url_list
-
     return url_list
 
 

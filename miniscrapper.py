@@ -291,10 +291,14 @@ def count_number_of_ratings_and_comments_for_beer_url(beer_url):
 
 
 def get_all_beers_urls():
+    """ Returns the set of beer URLs
+
+    Since it's a set, there will be no duplicates.
+    """
     url_list = []
     for style_url in get_styles_url_and_names().keys():
         url_list.extend(get_all_beers_from_substyle(style_url))
-    return url_list
+    return set(url_list)
 
 
 def get_beer_comments_and_ratings(beer_profile_url):

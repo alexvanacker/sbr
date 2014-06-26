@@ -186,7 +186,8 @@ def get_beer_infos(beer_profile_url):
 
             if content_string != None:
 
-                if content_string.find('Brewed') > -1:
+                if content_string.find('Brewed') > -1 and content.name != None\
+                    and content.name.find('b') > -1:
                         brewery = content.find_next('a').b.string
                         info_dict['brewery'] = brewery
 
@@ -231,7 +232,8 @@ def get_beer_infos(beer_profile_url):
                     index = infos_td_contents.index(content)
                     info_dict['availability'] = infos_td_contents[index + 1].strip()
 
-                if content_string.find('Notes') > -1:
+                if content_string.find('Notes') > -1 and content.name != None \
+                    and content.name.find('b') > -1:
                     index = infos_td_contents.index(content)
                     index += 1
                     notes = ''

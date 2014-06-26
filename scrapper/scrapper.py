@@ -145,6 +145,7 @@ def get_beer_infos(beer_profile_url):
         info_dict = {}
         soup = make_soup(beer_profile_url)
         beer_name = get_beer_name(soup)
+        info_dict['beer_url'] = beer_profile_url
         info_dict['name'] = beer_name
 
         # Main info container

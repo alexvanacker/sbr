@@ -178,37 +178,69 @@ def get_beer_infos(beer_profile_url):
     if m_added_date:
         info_dict['added_on'] = m_added_date.group(1)
 
-    # Rest of the info is in every child...
+    # Availability also
+    found_place = False
+    for content in infos_td_contents:
+        content_string = content.string
 
-    for child in infos_td.find_all(recursive=False):
-        child_string = child.string
-        if not child_string == None:
-            if child_string.find('Brewed') > -1:
-                brewery = child.find_next('a').b.string
-                info_dict['brewery'] = brewery
+        if content_string != None:
 
-            if child_string.find('Style') > -1:
-                print 'Style ang ABV'
+            if content_string.find('Brewed') > -1:
+                    brewery = content.find_next('a').b.string
+                    info_dict['brewery'] = brewery
 
-            if child_string.find('Avail') > -1:
-                print 'Availability'
+            if not found_place and content.name != None \
+                and content.name.find('a') > -1 and content['href'].find('place') > -1:
+                location = ''
+                double_break = False
+                previous_was_br = False
+                found_place = True
+                el = content
+                index = infos_td_contents.index(el)
+                while not double_break:
+                    el = infos_td_contents[index]
 
-            if child_string.find('Notes') > -1:
-                print 'notes'
-        
-       
-            # Brewery
-            # if child['href'].find('beer/profile') > -1:
-            #     brewery = child.b.contents[0]
-            #     info_dict['brewery'] = brewery
+                    if el.string != None and el.string.strip() != '':
+                        location += ' ' + el.string.strip()
 
+                    el_name = el.name
+                    if el_name != None and el_name.find('br') > -1:
+                        double_break = previous_was_br
+                        previous_was_br = True
+                    else:
+                        previous_was_br = False
+                    
+                    index += 1
+
+                info_dict['brewery_location'] = location
+
+            if content_string.find('Style') > -1:
+                a_tag = content.find_next('a')
+                style = a_tag.b.string
+                info_dict['style'] = style
+
+                # Get ABV also
+                index = infos_td_contents.index(a_tag)
+                abv_string = infos_td_contents[index + 1].replace('|', '').replace('%','').strip()
+                info_dict['abv'] = abv_string
+
+            if content_string.find('Avail') > -1:
+                index = infos_td_contents.index(content)
+                info_dict['availability'] = infos_td_contents[index + 1].strip()
+
+            if content_string.find('Notes') > -1:
+                index = infos_td_contents.index(content)
+                index += 1
+                notes = ''
+                while index < len(infos_td_contents) - 1:
+                    el = infos_td_contents[index]
+                    el_string = el.string
+                    if el_string != None and el_string.strip() != '':
+                        notes += ' ' + el_string.strip()
+                    index += 1
+                info_dict['notes'] = notes
+                
     return info_dict
-
-def check_double_break(tag):
-    """Returns true if tag is br and previous tag was br
-    """
-    if tag.name == 'br':
-        return tag.find_previous().name == 'br'
 
 
 def fast_count_number_of_beers():

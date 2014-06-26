@@ -141,106 +141,109 @@ def get_beer_infos(beer_profile_url):
 
     Dict contains name, ABV, etc. #TODO finish docstring
     """
+    try:
+        info_dict = {}
+        soup = make_soup(beer_profile_url)
+        beer_name = get_beer_name(soup)
+        info_dict['name'] = beer_name
 
-    info_dict = {}
-    soup = make_soup(beer_profile_url)
-    beer_name = get_beer_name(soup)
-    info_dict['name'] = beer_name
+        # Main info container
+        main_div = soup.find(id='baContent')
+        infos_tr = main_div.table.tr
 
-    # Main info container
-    main_div = soup.find(id='baContent')
-    infos_tr = main_div.table.tr
+        # Get photo URL
+        photo_img = infos_tr.td.find('img')
+        info_dict['image_url'] = photo_img['src']
 
-    # Get photo URL
-    photo_img = infos_tr.td.find('img')
-    info_dict['image_url'] = photo_img['src']
+        # Warning: tbody not seen by lxml parser
+        if parser == parser_lxml:
+            infos_tbody = infos_tr.find_all('td', recursive=False)[1].table
+        elif parser == parser_html5:
+            infos_tbody = infos_tr.find_all('td', recursive=False)[1].table.tbody
+        else:
+            logger.error('Unhandled parser: ' + parser)
+            raise
 
-    # Warning: tbody not seen by lxml parser
-    if parser == parser_lxml:
-        infos_tbody = infos_tr.find_all('td', recursive=False)[1].table
-    elif parser == parser_html5:
-        infos_tbody = infos_tr.find_all('td', recursive=False)[1].table.tbody
-    else:
-        logger.error('Unhandled parser: ' + parser)
-        raise
+        infos_td = infos_tbody.find_all('tr', recursive=False)[1].td
 
-    infos_td = infos_tbody.find_all('tr', recursive=False)[1].td
+        infos_td_contents = infos_td.contents
+        # String element if td is at the end, and contains the added by
+        # Did mention 'ugly'?
+        added_by_string = infos_td_contents[-1]
+        m_added_user = re.search(': (.+)? on', added_by_string)
+        if m_added_user:
+            info_dict['added_by'] = m_added_user.group(1)
 
-    infos_td_contents = infos_td.contents
-    # String element if td is at the end, and contains the added by
-    # Did mention 'ugly'?
-    added_by_string = infos_td_contents[-1]
-    m_added_user = re.search(': (.+)? on', added_by_string)
-    if m_added_user:
-        info_dict['added_by'] = m_added_user.group(1)
+        m_added_date = re.search('on (\d+-\d+-\d+)?', added_by_string)
+        if m_added_date:
+            info_dict['added_on'] = m_added_date.group(1)
 
-    m_added_date = re.search('on (\d+-\d+-\d+)?', added_by_string)
-    if m_added_date:
-        info_dict['added_on'] = m_added_date.group(1)
+        # Availability also
+        found_place = False
+        for content in infos_td_contents:
+            content_string = content.string
 
-    # Availability also
-    found_place = False
-    for content in infos_td_contents:
-        content_string = content.string
+            if content_string != None:
 
-        if content_string != None:
+                if content_string.find('Brewed') > -1:
+                        brewery = content.find_next('a').b.string
+                        info_dict['brewery'] = brewery
 
-            if content_string.find('Brewed') > -1:
-                    brewery = content.find_next('a').b.string
-                    info_dict['brewery'] = brewery
+                if not found_place and content.name != None \
+                    and content.name.find('a') > -1 and content['href'].find('place') > -1:
+                    location = ''
+                    double_break = False
+                    previous_was_br = False
+                    found_place = True
+                    el = content
+                    index = infos_td_contents.index(el)
+                    while not double_break:
+                        el = infos_td_contents[index]
 
-            if not found_place and content.name != None \
-                and content.name.find('a') > -1 and content['href'].find('place') > -1:
-                location = ''
-                double_break = False
-                previous_was_br = False
-                found_place = True
-                el = content
-                index = infos_td_contents.index(el)
-                while not double_break:
-                    el = infos_td_contents[index]
+                        if el.string != None and el.string.strip() != '':
+                            location += ' ' + el.string.strip()
 
-                    if el.string != None and el.string.strip() != '':
-                        location += ' ' + el.string.strip()
+                        el_name = el.name
+                        if el_name != None and el_name.find('br') > -1:
+                            double_break = previous_was_br
+                            previous_was_br = True
+                        else:
+                            previous_was_br = False
+                        
+                        index += 1
 
-                    el_name = el.name
-                    if el_name != None and el_name.find('br') > -1:
-                        double_break = previous_was_br
-                        previous_was_br = True
-                    else:
-                        previous_was_br = False
+                    info_dict['brewery_location'] = location
+
+                if content_string.find('Style') > -1:
+                    a_tag = content.find_next('a')
+                    style = a_tag.b.string
+                    info_dict['style'] = style
+
+                    # Get ABV also
+                    index = infos_td_contents.index(a_tag)
+                    abv_string = infos_td_contents[index + 1].replace('|', '').replace('%','').strip()
+                    info_dict['abv'] = abv_string
+
+                if content_string.find('Avail') > -1:
+                    index = infos_td_contents.index(content)
+                    info_dict['availability'] = infos_td_contents[index + 1].strip()
+
+                if content_string.find('Notes') > -1:
+                    index = infos_td_contents.index(content)
+                    index += 1
+                    notes = ''
+                    while index < len(infos_td_contents) - 1:
+                        el = infos_td_contents[index]
+                        el_string = el.string
+                        if el_string != None and el_string.strip() != '':
+                            notes += ' ' + el_string.strip()
+                        index += 1
+                    info_dict['notes'] = notes
                     
-                    index += 1
-
-                info_dict['brewery_location'] = location
-
-            if content_string.find('Style') > -1:
-                a_tag = content.find_next('a')
-                style = a_tag.b.string
-                info_dict['style'] = style
-
-                # Get ABV also
-                index = infos_td_contents.index(a_tag)
-                abv_string = infos_td_contents[index + 1].replace('|', '').replace('%','').strip()
-                info_dict['abv'] = abv_string
-
-            if content_string.find('Avail') > -1:
-                index = infos_td_contents.index(content)
-                info_dict['availability'] = infos_td_contents[index + 1].strip()
-
-            if content_string.find('Notes') > -1:
-                index = infos_td_contents.index(content)
-                index += 1
-                notes = ''
-                while index < len(infos_td_contents) - 1:
-                    el = infos_td_contents[index]
-                    el_string = el.string
-                    if el_string != None and el_string.strip() != '':
-                        notes += ' ' + el_string.strip()
-                    index += 1
-                info_dict['notes'] = notes
-                
-    return info_dict
+        return info_dict
+    except:
+        print 'Error while working on URL: '+beer_profile_url
+        raise
 
 
 def fast_count_number_of_beers():

@@ -214,7 +214,8 @@ def get_beer_infos(beer_profile_url):
 
                     info_dict['brewery_location'] = location
 
-                if content_string.find('Style') > -1:
+                if content_string.find('Style') > -1 and content.name != None \
+                    and content.name.find('b') > -1:
                     a_tag = content.find_next('a')
                     style = a_tag.b.string
                     info_dict['style'] = style

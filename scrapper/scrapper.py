@@ -224,7 +224,8 @@ def get_beer_infos(beer_profile_url):
                     abv_string = infos_td_contents[index + 1].replace('|', '').replace('%','').strip()
                     info_dict['abv'] = abv_string
 
-                if content_string.find('Avail') > -1:
+                if content_string.find('Avail') > -1 and content.name != None \
+                    and content.name.find('b') > -1:
                     index = infos_td_contents.index(content)
                     info_dict['availability'] = infos_td_contents[index + 1].strip()
 

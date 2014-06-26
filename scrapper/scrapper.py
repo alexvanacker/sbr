@@ -170,7 +170,7 @@ def get_beer_infos(beer_profile_url):
     # String element if td is at the end, and contains the added by
     # Did mention 'ugly'?
     added_by_string = infos_td_contents[-1]
-    m_added_user = re.search('added by: ((.*)+)? on', added_by_string)
+    m_added_user = re.search(': (.+)? on', added_by_string)
     if m_added_user:
         info_dict['added_by'] = m_added_user.group(1)
 

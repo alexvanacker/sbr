@@ -14,15 +14,15 @@ from bs4 import FeatureNotFound
 logger = logging.getLogger(__name__)
 
 # Define which parser to use
-parser_1 = "lxml"
-parser_2 = "html5lib"
-parser = parser_1
+parser_lxml = "lxml"
+parser_html5 = "html5lib"
+parser = parser_lxml
 try:
     test_soup = BeautifulSoup('<html></html>', parser)
 except FeatureNotFound:
     # print because logger may not be defined at this stage
-    print parser + ' not found, switching to '+parser_2
-    parser = parser_2
+    print parser + ' not found, switching to '+parser_html5
+    parser = parser_html5
     test_soup = BeautifulSoup('<html></html>', parser)
 
 
@@ -139,7 +139,7 @@ def get_beer_name(profile_page_soup):
 def get_beer_infos(beer_profile_url):
     """Return a dict containing beer information
 
-    Dict contains name, ABV, etc. #TODO
+    Dict contains name, ABV, etc. #TODO finish docstring
     """
 
     info_dict = {}
@@ -156,18 +156,59 @@ def get_beer_infos(beer_profile_url):
     info_dict['image_url'] = photo_img['src']
 
     # Warning: tbody not seen by lxml parser
-    infos_tbody = infos_tr.find_all('td', recursive=False)[1].table
+    if parser == parser_lxml:
+        infos_tbody = infos_tr.find_all('td', recursive=False)[1].table
+    elif parser == parser_html5:
+        infos_tbody = infos_tr.find_all('td', recursive=False)[1].table.tbody
+    else:
+        logger.error('Unhandled parser: ' + parser)
+        raise
+
     infos_td = infos_tbody.find_all('tr', recursive=False)[1].td
 
+    infos_td_contents = infos_td.contents
+    # String element if td is at the end, and contains the added by
+    # Did mention 'ugly'?
+    added_by_string = infos_td_contents[-1]
+    m_added_user = re.search('added by: ((.*)+)? on', added_by_string)
+    if m_added_user:
+        info_dict['added_by'] = m_added_user.group(1)
+
+    m_added_date = re.search('on (\d+-\d+-\d+)?', added_by_string)
+    if m_added_date:
+        info_dict['added_on'] = m_added_date.group(1)
+
     # Rest of the info is in every child...
+
     for child in infos_td.find_all(recursive=False):
-        if child.name == 'a':
-            # Brewery
-            if child['href'].find('beer/profile') > -1:
-                brewery = child.b.contents[0]
+        child_string = child.string
+        if not child_string == None:
+            if child_string.find('Brewed') > -1:
+                brewery = child.find_next('a').b.string
                 info_dict['brewery'] = brewery
 
+            if child_string.find('Style') > -1:
+                print 'Style ang ABV'
+
+            if child_string.find('Avail') > -1:
+                print 'Availability'
+
+            if child_string.find('Notes') > -1:
+                print 'notes'
+        
+       
+            # Brewery
+            # if child['href'].find('beer/profile') > -1:
+            #     brewery = child.b.contents[0]
+            #     info_dict['brewery'] = brewery
+
     return info_dict
+
+def check_double_break(tag):
+    """Returns true if tag is br and previous tag was br
+    """
+    if tag.name == 'br':
+        return tag.find_previous().name == 'br'
 
 
 def fast_count_number_of_beers():

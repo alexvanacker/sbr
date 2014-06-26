@@ -351,7 +351,9 @@ def handle_info_key(key, valuesoup) :
     if key == 'Gender:' :
         mytuple = ('Gender',valuesoup.contents[0])
     elif key == 'Birthday:': 
-        mytuple = ('Birth_Year','')  # TODO
+        catch = re.search(', (\d+)? \(',valuesoup.contents[0])
+        year =  '' if catch is None else catch.group(1)    
+        mytuple = ('Birth_Year',year) 
     elif key == 'Location:' : 
         mytuple = ('Location' , valuesoup.a.contents[0] )
     elif key == 'Home page:' :

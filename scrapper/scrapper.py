@@ -305,3 +305,36 @@ def get_beer_comments_and_ratings(beer_profile_url):
     soup = make_soup(beer_profile_url)
     soup_making_time = time.time() - soup_making_start
     logger.debug('Time for soup making: ' + str(soup_making_time))
+
+
+def handle_info_key(key, valuesoup) :
+    if key == 'Gender:' :
+        mytuple = ('Gender',valuesoup.contents[0])
+    elif key == 'Birthday:': 
+        mytuple = ('Birth_Year','')  # TODO
+    elif key == 'Location:' : 
+        mytuple = ('Location' , valuesoup.a.contents[0] )
+    elif key == 'Home page:' :
+        mytuple = ('Home_Page','') # TODO do we need ? 
+    elif key == 'Occupation:':
+        mytuple = ('Occupation', valuesoup.contents[0] ) 
+    elif key == 'Content:' : 
+        mytuple = ('Content','') # TODO do we need ? 
+    else : # should not be the case but we never know. 
+        mytuple = (key,valuesoup.contents[0])
+    return mytuple
+
+def get_user_id(user_url):
+    # parse url to get the user_id in it. 
+    return re.search('\.(\d+)?/$', user_url).group(1)
+
+def get_user_infos(user_url) :
+    user_infos = {'user_id':'','Occupation':'','Location':'','Gender':'','Birth_Year':'','Content':'','Home_Page':''}
+    user_infos['user_id'] = get_user_id(user_url)
+    soup = make_soup(user_url)
+    about = soup.find_all('li',attrs={"class":'profileContent','id':'info'})
+    dls = about[0].find_all('dl')
+    for dluser in dls :
+        info = handle_info_key(dluser.dt.contents[0], dluser.dd)
+        user_infos[info[0]] = info[1]
+    return user_infos

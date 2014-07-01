@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import requests
+import csv
 import time
 import sys
 import re
@@ -253,6 +254,75 @@ def get_beer_infos(beer_profile_url):
     except:
         print 'Error while working on URL: '+beer_profile_url
         raise
+
+
+def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
+
+    dest_file = open(dest_file_path, 'wb')
+    try:
+
+        # get the first url and fetch its info to create the csv header
+        sample_infos = get_beer_infos(list_url[0])
+        field_names = sample_infos.keys()
+        csv_writer = csv.DictWriter(dest_file, fieldnames=field_names)
+        csv_writer.writeheader()
+
+        number_beer = 0
+        temp_array = []
+
+        for beer_url in list_url:
+            beer_info = None
+            try:
+                beer_info = get_beer_infos(beer_url)
+            except:
+                print 'Error while loading URL: ' + beer_url
+                print 'Trying again in 5 seconds...'
+                time.sleep(5)
+
+                try:
+                    beer_info = get_beer_infos(beer_url)
+                except Exception, e:
+                    print 'Could not load URL: ' + beer_url
+                    print str(e)
+                    print 'Moving on to the next.'
+
+            if beer_info:
+                temp_array.append(beer_info)
+                number_beer += 1
+                if number_limit > 0 and number_beer >= number_limit:
+
+                    # write to disk
+                    write_unicode_csv_rows(temp_array, csv_writer)
+
+                    # Reset to 0
+                    number_beer = 0
+                    temp_array = []
+
+        # Finish writing
+        write_unicode_csv_rows(temp_array, csv_writer)
+
+        print 'Finished writing beers to ' + dest_file_path
+
+    except Exception, e:
+        print 'Global error while fetching beer info:'
+        print str(e)
+
+    finally:
+        dest_file.close()
+
+
+def write_unicode_csv_rows(dicts, csv_writer):
+    """Writes the dictionaries using the csv writer
+
+    """
+    for dict_row in dicts:
+        try:
+            csv_writer.writerow({k: v.encode("utf-8").strip() for k, v in dict_row.items()})
+        except Exception, e:
+            print 'Error writing line: ' + str(row)
+            print str(e)
+            raise
+
 
 
 def fast_count_number_of_beers():

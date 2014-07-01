@@ -348,32 +348,54 @@ def get_beer_comments_and_ratings(beer_profile_url):
 
 
 def handle_info_key(key, valuesoup) :
+    ''' handle different values of soup according to different key
+    '''
     if key == 'Gender:' :
-        mytuple = ('Gender',valuesoup.contents[0])
+        mytuple = ('gender',valuesoup.contents[0])
     elif key == 'Birthday:': 
         catch = re.search(', (\d+)? \(',valuesoup.contents[0])
         year =  '' if catch is None else catch.group(1)    
-        mytuple = ('Birth_Year',year) 
+        mytuple = ('birth_year',year) 
     elif key == 'Location:' : 
-        mytuple = ('Location' , valuesoup.a.contents[0] )
+        mytuple = ('location' , valuesoup.a.contents[0] )
     elif key == 'Home page:' :
-        mytuple = ('Home_Page','') # TODO do we need ? 
+        mytuple = ('home_page','') # TODO do we need ? 
     elif key == 'Occupation:':
-        mytuple = ('Occupation', valuesoup.contents[0] ) 
+        mytuple = ('occupation', valuesoup.contents[0] ) 
     elif key == 'Content:' : 
-        mytuple = ('Content','') # TODO do we need ? 
+        mytuple = ('content','') # TODO do we need ? 
     else : # should not be the case but we never know. 
         mytuple = (key,valuesoup.contents[0])
     return mytuple
 
+def get_user_join_date(soup) : 
+    ''' get user join date from dedicated field
+    '''
+    second = soup.find_all(attrs={'class':"secondaryContent pairsJustified"},recursive=True)[0]
+    for dl in second.findAll('dl') :
+        print dl.dt.contents[0]
+        if dl.dt.contents[0] == 'Joined:' :
+            return dl.dd.contents[0]
+    return ''   
+
+def get_user_name(soup) : 
+    ''' get the user name in the dedicated field         
+    '''
+    return soup.find_all(attrs={'itemprop':"name",'class':"username"},recursive=True)[0].contents[0]
+
 def get_user_id(user_url):
-    # parse url to get the user_id in it. 
+    ''' parse url to get the user_id in it.         
+    '''
     return re.search('\.(\d+)?/$', user_url).group(1)
 
 def get_user_infos(user_url) :
-    user_infos = {'user_id':'','Occupation':'','Location':'','Gender':'','Birth_Year':'','Content':'','Home_Page':''}
+    ''' given a user url, returns all the relevant information we can get
+    '''
+    user_infos = {'scrapped_date':'','user_id':'','user_name':'','join_date' : '', 'occupation':'','location':'','gender':'','birth_year':'','content':'','home_page':''}
     user_infos['user_id'] = get_user_id(user_url)
     soup = make_soup(user_url)
+    user_infos['user_name'] = get_user_name(soup)
+    user_infos['join_date'] = get_user_join_date(soup)
     about = soup.find_all('li',attrs={"class":'profileContent','id':'info'})
     dls = about[0].find_all('dl')
     for dluser in dls :

@@ -184,15 +184,17 @@ def get_beer_infos(beer_profile_url):
         for content in infos_td_contents:
             content_string = content.string
 
-            if content_string != None:
+            if content_string:
 
-                if content_string.find('Brewed') > -1 and content.name != None\
-                    and content.name.find('b') > -1:
-                        brewery = content.find_next('a').b.string
-                        info_dict['brewery'] = brewery
+                if 'Brewed' in content_string and content.name \
+                        and 'b' in content.name:
 
-                if not found_place and content.name != None \
-                    and content.name.find('a') > -1 and content['href'].find('place') > -1:
+                            brewery = content.find_next('a').b.string
+                            info_dict['brewery'] = brewery
+
+                if not found_place and content.name  \
+                        and 'a' in content.name \
+                        and 'place' in content['href']:
                     location = ''
                     double_break = False
                     previous_was_br = False
@@ -202,49 +204,51 @@ def get_beer_infos(beer_profile_url):
                     while not double_break:
                         el = infos_td_contents[index]
 
-                        if el.string != None and el.string.strip() != '':
+                        if el.string:
                             location += ' ' + el.string.strip()
 
                         el_name = el.name
-                        if el_name != None and el_name.find('br') > -1:
+                        if el_name and 'br' in el_name:
                             double_break = previous_was_br
                             previous_was_br = True
                         else:
                             previous_was_br = False
-                        
+
                         index += 1
 
                     info_dict['brewery_location'] = location
 
-                if content_string.find('Style') > -1 and content.name != None \
-                    and content.name.find('b') > -1:
+                if 'Style' in content_string and content.name \
+                        and 'b' in content.name:
                     a_tag = content.find_next('a')
                     style = a_tag.b.string
                     info_dict['style'] = style
 
                     # Get ABV also
                     index = infos_td_contents.index(a_tag)
-                    abv_string = infos_td_contents[index + 1].replace('|', '').replace('%','').strip()
+                    abv_string = infos_td_contents[index + 1].replace('|', '')
+                    abv_string = abv_string.replace('%', '').strip()
                     info_dict['abv'] = abv_string
 
-                if content_string.find('Avail') > -1 and content.name != None \
-                    and content.name.find('b') > -1:
+                if 'Avail' in content_string and content.name \
+                        and 'b' in content.name:
                     index = infos_td_contents.index(content)
-                    info_dict['availability'] = infos_td_contents[index + 1].strip()
+                    avail = infos_td_contents[index + 1].strip()
+                    info_dict['availability'] = avail
 
-                if content_string.find('Notes') > -1 and content.name != None \
-                    and content.name.find('b') > -1:
+                if 'Notes' in content_string > -1 and content.name \
+                        and 'b' in content.name:
                     index = infos_td_contents.index(content)
                     index += 1
                     notes = ''
                     while index < len(infos_td_contents) - 1:
                         el = infos_td_contents[index]
                         el_string = el.string
-                        if el_string != None and el_string.strip() != '':
+                        if el_string:
                             notes += ' ' + el_string.strip()
                         index += 1
                     info_dict['notes'] = notes
-                    
+
         return info_dict
     except:
         print 'Error while working on URL: '+beer_profile_url
@@ -347,58 +351,64 @@ def get_beer_comments_and_ratings(beer_profile_url):
     logger.debug('Time for soup making: ' + str(soup_making_time))
 
 
-def handle_info_key(key, valuesoup) :
+def handle_info_key(key, valuesoup):
     ''' handle different values of soup according to different key
     '''
-    if key == 'Gender:' :
-        mytuple = ('gender',valuesoup.contents[0])
-    elif key == 'Birthday:': 
-        catch = re.search(', (\d+)? \(',valuesoup.contents[0])
-        year =  '' if catch is None else catch.group(1)    
-        mytuple = ('birth_year',year) 
-    elif key == 'Location:' : 
-        mytuple = ('location' , valuesoup.a.contents[0] )
-    elif key == 'Home page:' :
-        mytuple = ('home_page','') # TODO do we need ? 
+    if key == 'Gender:':
+        mytuple = ('gender', valuesoup.contents[0])
+    elif key == 'Birthday:':
+        catch = re.search(', (\d+)? \(', valuesoup.contents[0])
+        year = '' if not catch else catch.group(1)
+        mytuple = ('birth_year', year)
+    elif key == 'Location:':
+        mytuple = ('location', valuesoup.a.contents[0])
+    elif key == 'Home page:':
+        mytuple = ('home_page', '')  # TODO do we need ?
     elif key == 'Occupation:':
-        mytuple = ('occupation', valuesoup.contents[0] ) 
-    elif key == 'Content:' : 
-        mytuple = ('content','') # TODO do we need ? 
-    else : # should not be the case but we never know. 
-        mytuple = (key,valuesoup.contents[0])
+        mytuple = ('occupation', valuesoup.contents[0])
+    elif key == 'Content:':
+        mytuple = ('content', '')  # TODO do we need ?
+    else:  # should not be the case but we never know.
+        mytuple = (key, valuesoup.contents[0])
     return mytuple
 
-def get_user_join_date(soup) : 
+def get_user_join_date(soup):
     ''' get user join date from dedicated field
     '''
-    second = soup.find_all(attrs={'class':"secondaryContent pairsJustified"},recursive=True)[0]
-    for dl in second.findAll('dl') :
+    second = soup.find_all(attrs={'class':"secondaryContent pairsJustified"}, recursive=True)[0]
+    for dl in second.findAll('dl'):
         print dl.dt.contents[0]
-        if dl.dt.contents[0] == 'Joined:' :
+        if dl.dt.contents[0] == 'Joined:':
             return dl.dd.contents[0]
-    return ''   
+    return ''
 
-def get_user_name(soup) : 
-    ''' get the user name in the dedicated field         
+
+def get_user_name(soup):
+    ''' get the user name in the dedicated field
     '''
     return soup.find_all(attrs={'itemprop':"name",'class':"username"},recursive=True)[0].contents[0]
 
+
 def get_user_id(user_url):
-    ''' parse url to get the user_id in it.         
+    ''' parse url to get the user_id in it.
     '''
     return re.search('\.(\d+)?/$', user_url).group(1)
 
-def get_user_infos(user_url) :
+
+def get_user_infos(user_url):
     ''' given a user url, returns all the relevant information we can get
     '''
-    user_infos = {'scrapped_date':'','user_id':'','user_name':'','join_date' : '', 'occupation':'','location':'','gender':'','birth_year':'','content':'','home_page':''}
+    user_infos = {'scrapped_date': '', 'user_id': '', 'user_name': '',
+                  'join_date': '', 'occupation': '', 'location': '',
+                  'gender': '', 'birth_year': '', 'content': '',
+                  'home_page': ''}
     user_infos['user_id'] = get_user_id(user_url)
     soup = make_soup(user_url)
     user_infos['user_name'] = get_user_name(soup)
     user_infos['join_date'] = get_user_join_date(soup)
-    about = soup.find_all('li',attrs={"class":'profileContent','id':'info'})
+    about = soup.find_all('li', attrs={"class": 'profileContent', 'id': 'info'})
     dls = about[0].find_all('dl')
-    for dluser in dls :
+    for dluser in dls:
         info = handle_info_key(dluser.dt.contents[0], dluser.dd)
         user_infos[info[0]] = info[1]
     return user_infos

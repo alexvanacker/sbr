@@ -7,6 +7,8 @@ import time
 import sys
 import re
 import logging
+import cPickle as pickle
+import os
 import logging.config
 from bs4 import BeautifulSoup
 from bs4 import FeatureNotFound
@@ -320,7 +322,7 @@ def write_unicode_csv_rows(dicts, csv_writer):
         try:
             csv_writer.writerow({k: v.encode("utf-8").strip() for k, v in dict_row.items()})
         except Exception, e:
-            print 'Error writing line: ' + str(row)
+            print 'Error writing line: ' + str(dict_row)
             print str(e)
             raise
 

@@ -178,7 +178,7 @@ def get_beer_infos(beer_profile_url):
         if m_added_user:
             info_dict['added_by'] = m_added_user.group(1)
 
-        m_added_date = re.search('on (\d+-\d+-\d+)?', added_by_string)
+        m_added_date = re.search('on (\d+-\d+-\d+)+', added_by_string)
         if m_added_date:
             info_dict['added_on'] = m_added_date.group(1)
 
@@ -270,10 +270,13 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
         csv_writer.writeheader()
 
         number_beer = 0
+        total_processed = 0
+        total_beers = len(list_url)
         temp_array = []
 
         for beer_url in list_url:
             beer_info = None
+            total_processed += 1
             try:
                 beer_info = get_beer_infos(beer_url)
             except:
@@ -300,6 +303,10 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
                     number_beer = 0
                     temp_array = []
 
+                    # Some feedback is nice
+                    percent_processed = total_processed * 100 / total_beers
+                    print 'Processed: ' + str(percent_processed) + '%'
+
         # Finish writing
         write_unicode_csv_rows(temp_array, csv_writer)
 
@@ -320,7 +327,7 @@ def write_unicode_csv_rows(dicts, csv_writer):
     """
     for dict_row in dicts:
         try:
-            csv_writer.writerow({k: v.encode("utf-8").strip() for k, v in dict_row.items()})
+            csv_writer.writerow({k: v.encode("utf-8").strip() if v else '' for k, v in dict_row.items()})
         except Exception, e:
             print 'Error writing line: ' + str(dict_row)
             print str(e)

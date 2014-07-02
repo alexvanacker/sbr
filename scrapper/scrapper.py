@@ -304,8 +304,9 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
         print 'Finished writing beers to ' + dest_file_path
 
     except Exception, e:
-        print 'Global error while fetching beer info:'
+        print 'Global error while writing beer info to ' + dest_file_path
         print str(e)
+        raise
 
     finally:
         dest_file.close()
@@ -322,7 +323,6 @@ def write_unicode_csv_rows(dicts, csv_writer):
             print 'Error writing line: ' + str(row)
             print str(e)
             raise
-
 
 
 def fast_count_number_of_beers():

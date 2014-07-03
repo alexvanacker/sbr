@@ -7,8 +7,6 @@ import time
 import sys
 import re
 import logging
-import cPickle as pickle
-import os
 import logging.config
 from bs4 import BeautifulSoup
 from bs4 import FeatureNotFound
@@ -79,8 +77,7 @@ def make_soup(url):
     """
     r = requests.get(url)
     if r.status_code != requests.codes.ok:
-        print 'Error: status code is ' + str(r.status_code) + ' for URL: ' + url
-        sys.exit(1)
+        raise Exception('Error: status code is ' + str(r.status_code) + ' for URL: ' + url)
     contents = r.content
 
     soup = BeautifulSoup(contents, parser)
@@ -262,9 +259,21 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
 
     dest_file = open(dest_file_path, 'wb')
     try:
-
+        nb_beers = len(list_url)
+        print 'Writing beer data to ' + dest_file_path
+        print 'Number of URLs to process: ' + str(nb_beers)
         # get the first url and fetch its info to create the csv header
-        sample_infos = get_beer_infos(list_url[0])
+        found_good_url = False
+        index = 0
+        while not found_good_url:
+            if index > nb_beers - 1:
+                raise Exception('Could not find one URL that could be reached.')
+            try:
+                sample_infos = get_beer_infos(list_url[index])
+                found_good_url = True
+            except:
+                index += 1
+
         field_names = sample_infos.keys()
         csv_writer = csv.DictWriter(dest_file, fieldnames=field_names)
         csv_writer.writeheader()
@@ -273,6 +282,8 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
         total_processed = 0
         total_beers = len(list_url)
         temp_array = []
+        # Keep URLs that have failed
+        error_list = []
 
         for beer_url in list_url:
             beer_info = None
@@ -287,6 +298,7 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
                 try:
                     beer_info = get_beer_infos(beer_url)
                 except Exception, e:
+                    error_list.append(beer_url)
                     print 'Could not load URL: ' + beer_url
                     print str(e)
                     print 'Moving on to the next.'
@@ -311,6 +323,14 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
         write_unicode_csv_rows(temp_array, csv_writer)
 
         print 'Finished writing beers to ' + dest_file_path
+        print 'Number of errors: ' + str(len(error_list))
+        
+        # Write errors to file
+        current_time = time.strftime('%Y_%m_%d_%H_%M_%S')
+        error_file_name = 'beer_info_errors_'+current_time+'.txt'
+        error_file = open(error_file_name, 'w')
+        error_file.writelines(error_list)
+        error_file.close()
 
     except Exception, e:
         print 'Global error while writing beer info to ' + dest_file_path

@@ -511,3 +511,24 @@ def get_user_infos(user_url):
         info = handle_info_key(dluser.dt.contents[0], dluser.dd)
         user_infos[info[0]] = info[1]
     return user_infos
+
+def get_brewery_id(url):
+    ''' get brewery id from url
+    '''
+    return re.search('profile/(\d+)?/$', url).group(1)
+
+def get_brewery_infos(url):
+    ''' get all brewery infos from url
+    '''
+    brewery_infos = {}
+    brewery_infos['url'] = url
+    # id, no need for soup
+    brewery_infos['brewery_id'] = get_brewery_id(url)
+    ## now the soup 
+    soup = make_soup(url)
+    # name
+    brewery_infos['name'] = soup.findAll('div',attrs = {'class' : 'titleBar'})[0].h1.contents[0]
+    baContent = soup.findAll('div',attrs = {'id' : 'baContent'})[0]
+    # image
+    brewery_infos['image_url'] = baContent.table.tr.td.img['src']
+    return brewery_infos

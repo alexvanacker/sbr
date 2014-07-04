@@ -84,6 +84,40 @@ def make_soup(url):
     return soup
 
 
+def find_last_number_of_subpages_from_url(url):
+    """ Wrapper method for finding last subpage for given URL
+
+    """
+    soup = make_soup(url)
+    return find_last_number_of_subpages(soup, url)
+
+
+def find_last_number_of_subpages(soup, url):
+    """ Finds the last subpage number in the soup.
+
+    Based on the link to last. URL is used for feedback if error.
+    """
+
+    #5th div
+    div_with_last = soup.body.findAll(id='baContent')[0].findAll('div', recursive=False)[4]
+    
+    # Check that it has subpages
+    if div_with_last.b:
+        last_a = div_with_last.findAll('a', recursive='False')[-1]
+        href = last_a['href']
+        print href
+        match = re.search('start=(\d+)', href)
+        if match:
+            return match.group(1)
+
+        else:
+            logger.error('Could not extract max number of subpages: ' + url)
+            raise Exception('Could not extract max number of subpages: ' + url)
+
+    else:
+        return '0'
+
+
 def find_max(url):
     soup = make_soup(url)
     st = soup.body.findAll(id='baContent')[0].table.td.span.b.contents[0]
@@ -444,10 +478,23 @@ def get_all_beers_urls():
 
 
 def get_beer_comments_and_ratings(beer_profile_url):
-    soup_making_start = time.time()
-    soup = make_soup(beer_profile_url)
-    soup_making_time = time.time() - soup_making_start
-    logger.debug('Time for soup making: ' + str(soup_making_time))
+    """Return list of comments and ratings for beer URL.
+
+    """
+    comments_and_ratings = []
+
+    # Get list of subpages
+    last_page = find_last_number_of_subpages_from_url(beer_profile_url)
+    comments_and_ratings_urls = []
+    start = 0
+    # Not strictly inferior because last page is a factor of 50!
+    last_page_int = int(last_page)
+    while start <= last_page_int:
+        comments_and_ratings_urls.append(beer_profile_url + '?hideRatings=N&start=' + str(start))
+        start = start + 50
+    
+    print str(comments_and_ratings_urls)
+    
 
 
 def handle_info_key(key, valuesoup):

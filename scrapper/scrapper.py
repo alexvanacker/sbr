@@ -562,7 +562,7 @@ def get_user_infos(user_url):
 def get_brewery_from_beer(url) :
     ''' given a beer url generates the corresponding brewery url
     '''
-    brew_id = re.search('profile/(\d*)/', url).group(0)
+    brew_id = re.search('profile/(\d*)/', url).group(1)
     return 'http://www.beeradvocate.com/beer/profile/'+str(brew_id)
 
 def get_brewery_id(url):

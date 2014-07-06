@@ -77,7 +77,8 @@ def make_soup(url):
     """
     r = requests.get(url)
     if r.status_code != requests.codes.ok:
-        raise Exception('Error: status code is ' + str(r.status_code) + ' for URL: ' + url)
+        raise Exception('Error: status code is %s for URL: %s',
+                        str(r.status_code), url)
     contents = r.content
 
     soup = BeautifulSoup(contents, parser)
@@ -100,7 +101,7 @@ def find_last_number_of_subpages(soup, url):
 
     #5th div
     div_with_last = soup.body.findAll(id='baContent')[0].findAll('div', recursive=False)[4]
-    
+
     # Check that it has subpages
     if div_with_last.b:
         last_a = div_with_last.findAll('a', recursive='False')[-1]
@@ -358,7 +359,7 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
 
         print 'Finished writing beers to ' + dest_file_path
         print 'Number of errors: ' + str(len(error_list))
-        
+
         # Write errors to file
         current_time = time.strftime('%Y_%m_%d_%H_%M_%S')
         error_file_name = 'beer_info_errors_'+current_time+'.txt'
@@ -480,6 +481,7 @@ def get_all_beers_urls():
 def get_beer_comments_and_ratings(beer_profile_url):
     """Return list of comments and ratings for beer URL.
 
+    Tuple is made of url, user_name, user_url, rating, comment...
     """
     comments_and_ratings = []
 
@@ -492,9 +494,58 @@ def get_beer_comments_and_ratings(beer_profile_url):
     while start <= last_page_int:
         comments_and_ratings_urls.append(beer_profile_url + '?hideRatings=N&start=' + str(start))
         start = start + 50
-    
-    print str(comments_and_ratings_urls)
-    
+
+    for suburl in comments_and_ratings_urls:
+        comments_and_ratings.extend(extract_comments_and_ratings_from_url(suburl))
+
+    return comments_and_ratings
+
+
+def extract_comments_and_ratings_from_url(url):
+    try:
+
+        # Clean end of URL to get the main Beer URL
+        beer_url = url
+        if '?' in url:
+            beer_url = re.sub(r'\?.*', '', url)
+
+        empty_rating_dict = {'beer_url': beer_url, 'user_url': '',
+                             'score': '', 'rdev': '', 'date': '',
+                             'look': '', 'smell': '', 'taste': '', 'feel': '',
+                             'overall': '', 'serving_type': '', 'comment_text': ''}
+
+        list_ratings_reviews = []
+        soup = make_soup(url)
+        review_divs = soup.findAll(id='rating_fullview_content_2')
+        for review_div in review_divs:
+            rating_dict = empty_rating_dict.copy()
+
+            # user url
+            rating_dict['user_url'] = review_div.h6.a['href']
+
+            # score
+            rating_dict['score'] = review_div.find(class_='BAscore_norm').contents[0]
+
+            # Now we'll process line by line... Always ugly
+            # rdev - useful?
+            norm_line = review_div.find(class_='rAvg_norm')
+            rdev_line = norm_line.next_element.next_element.next_element
+            rdev = rdev_line.contents[0].replace('%', '')
+            rating_dict['rdev'] = rdev
+
+            # If there is a review, then we have more info
+            # TODO: detect if there is something else, like a review
+            # otherwise get the date right away
+
+            list_ratings_reviews.append(rating_dict)
+
+
+
+        return list_ratings_reviews
+
+    except Exception:
+        print('Error fetching reviews and ratings from %s', url)
+        raise
 
 
 def handle_info_key(key, valuesoup):
@@ -517,6 +568,7 @@ def handle_info_key(key, valuesoup):
     else:  # should not be the case but we never know.
         mytuple = (key, valuesoup.contents[0])
     return mytuple
+
 
 def get_user_join_date(soup):
     ''' get user join date from dedicated field

@@ -4,7 +4,6 @@
 import requests
 import csv
 import time
-import sys
 import re
 import logging
 import logging.config
@@ -410,7 +409,8 @@ def count_number_of_beers():
         style_number = len(beer_urls)
         if style_number != real_nb_beers:
             logger.error('Error: wrong number of beers detected')
-            logger.error('Expected: ' + str(real_nb_beers) + ' found: ' + str(style_number))
+            logger.error('Expected: %s found: %s', str(real_nb_beers),
+                         str(style_number))
             logger.error('URL: '+url)
             raise
         # print substyle_name + ': ' + str(style_number)
@@ -492,11 +492,13 @@ def get_beer_comments_and_ratings(beer_profile_url):
     # Not strictly inferior because last page is a factor of 50!
     last_page_int = int(last_page)
     while start <= last_page_int:
-        comments_and_ratings_urls.append(beer_profile_url + '?hideRatings=N&start=' + str(start))
+        url_ratings = beer_profile_url + '?hideRatings=N&start=' + str(start)
+        comments_and_ratings_urls.append(url_ratings)
         start = start + 50
 
     for suburl in comments_and_ratings_urls:
-        comments_and_ratings.extend(extract_comments_and_ratings_from_url(suburl))
+        ratings_and_reviews = extract_comments_and_ratings_from_url(suburl)
+        comments_and_ratings.extend(ratings_and_reviews)
 
     return comments_and_ratings
 
@@ -512,10 +514,17 @@ def extract_comments_and_ratings_from_url(url):
         empty_rating_dict = {'beer_url': beer_url, 'user_url': '',
                              'score': '', 'rdev': '', 'date': '',
                              'look': '', 'smell': '', 'taste': '', 'feel': '',
-                             'overall': '', 'serving_type': '', 'comment_text': ''}
+                             'overall': '', 'serving_type': '',
+                             'comment_text': ''}
 
         list_ratings_reviews = []
         soup = make_soup(url)
+
+        # Used for extracting review date
+        date_pattern = re.compile('(\d+-\d+-\d+ \d+:\d+)+')
+        # Used for extracting serving type
+        type_pattern = re.compile(('type: (.+)'))
+
         review_divs = soup.findAll(id='rating_fullview_content_2')
         for review_div in review_divs:
             rating_dict = empty_rating_dict.copy()
@@ -524,7 +533,8 @@ def extract_comments_and_ratings_from_url(url):
             rating_dict['user_url'] = review_div.h6.a['href']
 
             # score
-            rating_dict['score'] = review_div.find(class_='BAscore_norm').contents[0]
+            bascore = review_div.find(class_='BAscore_norm')
+            rating_dict['score'] = bascore.contents[0]
 
             # Now we'll process line by line... Always ugly
             # rdev - useful?
@@ -534,12 +544,42 @@ def extract_comments_and_ratings_from_url(url):
             rating_dict['rdev'] = rdev
 
             # If there is a review, then we have more info
-            # TODO: detect if there is something else, like a review
-            # otherwise get the date right away
+            # A review is preceded by a single <br>, if no review
+            # then a double <br>
+            next_el = rdev_line.next_sibling
+            next_el_sibl = next_el.next_sibling
+            current_el = next_el_sibl
+
+            # Get all siblings, in any case
+            all_siblings = current_el.next_siblings
+            # Remove all tags from the siblings
+            true_siblings = [x for x in all_siblings if not x.name]
+
+            if not current_el.name or not 'br' in current_el.name:
+                # It's a review, let's parse it
+
+                # Current element is look, taste, etc. notes TODO
+
+                # Second to last element is serving type
+                serving_type_raw = true_siblings[-2]
+                type_match = type_pattern.search(serving_type_raw)
+                print serving_type_raw
+                if type_match:
+                    rating_dict['serving_type'] = type_match.group(1)
+                else:
+                    print 'Error getting serving type on %s' % beer_url
+
+                # Remaining are comments TODO
+
+            # Last is always date
+            date = true_siblings[-1]
+            date_match = date_pattern.match(date)
+            if not date_match:
+                print 'Error getting review date on %s ' % beer_url
+            else:
+                rating_dict['date'] = date_match.group(1)
 
             list_ratings_reviews.append(rating_dict)
-
-
 
         return list_ratings_reviews
 

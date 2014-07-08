@@ -105,8 +105,8 @@ def find_last_number_of_subpages(soup, url):
     if div_with_last.b:
         last_a = div_with_last.findAll('a', recursive='False')[-1]
         href = last_a['href']
-        print href
         match = re.search('start=(\d+)', href)
+
         if match:
             return match.group(1)
 
@@ -489,12 +489,13 @@ def get_beer_comments_and_ratings(beer_profile_url):
     last_page = find_last_number_of_subpages_from_url(beer_profile_url)
     comments_and_ratings_urls = []
     start = 0
-    # Not strictly inferior because last page is a factor of 50!
     last_page_int = int(last_page)
+
     while start <= last_page_int:
         url_ratings = beer_profile_url + '?hideRatings=N&start=' + str(start)
         comments_and_ratings_urls.append(url_ratings)
-        start = start + 50
+        # Reviews are 25 by 25
+        start = start + 25
 
     for suburl in comments_and_ratings_urls:
         ratings_and_reviews = extract_comments_and_ratings_from_url(suburl)
@@ -528,6 +529,7 @@ def extract_comments_and_ratings_from_url(url):
         single_note_pattern = re.compile('(\d+\.?\d*)+')
 
         review_divs = soup.findAll(id='rating_fullview_content_2')
+
         for review_div in review_divs:
             rating_dict = empty_rating_dict.copy()
 
@@ -541,8 +543,14 @@ def extract_comments_and_ratings_from_url(url):
             # Now we'll process line by line... Always ugly
             # rdev - useful?
             norm_line = review_div.find(class_='rAvg_norm')
-            rdev_line = norm_line.next_element.next_element.next_element
-            rdev = rdev_line.contents[0].replace('%', '')
+
+            rdev_line = norm_line.next_sibling
+            rdev_string = rdev_line.string
+            # Need to take into account rDev 0%
+            if not '%' in rdev_string:
+                rdev_line = rdev_line.next_sibling
+                rdev_string = rdev_line.string
+            rdev = rdev_line.string.replace('%', '').replace('rDev', '').strip()
             rating_dict['rdev'] = rdev
 
             # If there is a review, then we have more info
@@ -603,6 +611,8 @@ def extract_comments_and_ratings_from_url(url):
 
     except Exception:
         print 'Error fetching reviews and ratings from %s' % url
+        if review_div:
+            print review_div
         raise
 
 

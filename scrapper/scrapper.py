@@ -515,7 +515,7 @@ def extract_comments_and_ratings_from_url(url):
                              'score': '', 'rdev': '', 'date': '',
                              'look': '', 'smell': '', 'taste': '', 'feel': '',
                              'overall': '', 'serving_type': '',
-                             'comment_text': ''}
+                             'review': ''}
 
         list_ratings_reviews = []
         soup = make_soup(url)
@@ -524,6 +524,8 @@ def extract_comments_and_ratings_from_url(url):
         date_pattern = re.compile('(\d+-\d+-\d+ \d+:\d+)+')
         # Used for extracting serving type
         type_pattern = re.compile(('type: (.+)'))
+
+        single_note_pattern = re.compile('(\d+\.?\d*)+')
 
         review_divs = soup.findAll(id='rating_fullview_content_2')
         for review_div in review_divs:
@@ -558,18 +560,34 @@ def extract_comments_and_ratings_from_url(url):
             if not current_el.name or not 'br' in current_el.name:
                 # It's a review, let's parse it
 
-                # Current element is look, taste, etc. notes TODO
+                # Current element is look, taste, etc. notes
+                # Order is look, smell, taste, feel, overall
+                notes_search = single_note_pattern.findall(current_el)
+                try:
+                    if notes_search:
+                        rating_dict['look'] = float(notes_search[0])
+                        rating_dict['smell'] = float(notes_search[1])
+                        rating_dict['taste'] = float(notes_search[2])
+                        rating_dict['feel'] = float(notes_search[3])
+                        rating_dict['overall'] = float(notes_search[4])
+                    else:
+                        print 'Could not find note pattern on %s' % beer_url
+
+                except Exception:
+                    print 'Error getting notes on %s' % beer_url
+                    raise
 
                 # Second to last element is serving type
                 serving_type_raw = true_siblings[-2]
                 type_match = type_pattern.search(serving_type_raw)
-                print serving_type_raw
                 if type_match:
                     rating_dict['serving_type'] = type_match.group(1)
                 else:
                     print 'Error getting serving type on %s' % beer_url
 
-                # Remaining are comments TODO
+                # Remaining are comments
+                review_string = " ".join(true_siblings[0: -2])
+                rating_dict['review'] = review_string
 
             # Last is always date
             date = true_siblings[-1]
@@ -584,7 +602,7 @@ def extract_comments_and_ratings_from_url(url):
         return list_ratings_reviews
 
     except Exception:
-        print('Error fetching reviews and ratings from %s', url)
+        print 'Error fetching reviews and ratings from %s' % url
         raise
 
 

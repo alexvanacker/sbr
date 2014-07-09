@@ -717,8 +717,8 @@ def get_brewery_infos(url):
     # address
     a = baContent.table.table
     city = a.findAll(attrs={'href':re.compile(".*/place/list.*", re.I)})[0]
-    address['city'] = city.contents[0]
-    address['address'] = city.previous_sibling.previous_sibling
+    brewery_infos['city'] = city.contents[0]
+    brewery_infos['address'] = city.previous_sibling.previous_sibling
     a = city.parent # less to search later
     country = a.findAll(attrs={'href':re.compile(".*/place/directory/.*", re.I)})
     if len(country) == 2 :
@@ -755,11 +755,11 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
             if index > nb_brewery - 1:
                 raise Exception('Could not find one URL that could be reached.')
             try:
-                print list_url[index]
                 sample_infos = get_brewery_infos(list_url[index])
                 found_good_url = True
             except:
                 index += 1
+                raise
 
         field_names = sample_infos.keys()
         csv_writer = csv.DictWriter(dest_file, fieldnames=field_names)

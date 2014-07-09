@@ -1,17 +1,15 @@
 
 import unittest
+from scrapper import scrapper
 
-# Here's our "unit".
-def myFunc():
-    print "This is a test."
-
-def IsOdd(n):
-	return n % 2 == 1
 
 class ScraperTest(unittest.TestCase):
 
-    def testOne(self):
-        self.failUnless(IsOdd(2))
+    def testExtractReviewsFromUrls(self):
+        list_url = ['http://www.beeradvocate.com/beer/profile/694/15881/']
+        for url in list_url:
+            scrapper.extract_reviews_from_url(url)
+
 
 def main():
     unittest.main()

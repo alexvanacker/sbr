@@ -5,7 +5,7 @@ from scrapper import scrapper
 
 class ScraperTest(unittest.TestCase):
 
-    def testExtractReviewsFromUrls(self):
+    def test_extract_reviews_from_urls(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/694/15881/']
         for url in list_url:
             scrapper.extract_reviews_from_url(url)

@@ -698,7 +698,7 @@ def get_brewery_from_beer(url) :
 
 def get_brewery_id(url):
     ''' get brewery id from url '''
-    return re.search('profile/(\d+)?/$', url).group(1)
+    return re.search('profile/(\d+)/?$', url).group(1)
 
 def get_brewery_infos(url):
     ''' get all brewery infos from url
@@ -734,7 +734,11 @@ def get_brewery_infos(url):
     brewery_infos['phone'] = re.search('phone: ([^<>]*)[<>]', str(a)).group(1)
     brewery_infos['address'] = address
     # website
-    brewery_infos['website'] = a.findAll('img', attrs= {'alt':'visit their website'})[0].parent['href']
+    try : 
+        brewery_infos['website'] = a.findAll('img', attrs= {'alt':'visit their website'})[0].parent['href']
+    except : 
+        brewery_infos['website'] = ''
+
     return brewery_infos
 
 def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
@@ -744,8 +748,8 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
     try:
         
         nb_brewery = len(list_url)
-        print 'Writing brwery data to ' + dest_file_path
-        print 'Number of URLs to process: ' + str(nb_beers)
+        print 'Writing brewery data to ' + dest_file_path
+        print 'Number of URLs to process: ' + str(nb_brewery)
         # get the first url and fetch its info to create the csv header
         found_good_url = False
         index = 0
@@ -753,6 +757,7 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
             if index > nb_brewery - 1:
                 raise Exception('Could not find one URL that could be reached.')
             try:
+		print list_url[index]
                 sample_infos = get_brewery_infos(list_url[index])
                 found_good_url = True
             except:
@@ -773,14 +778,14 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
             brewery_info = None
             total_processed += 1
             try:
-                brewery_info = get_brewery_infos(beer_url)
+                brewery_info = get_brewery_infos(brewery_url)
             except:
-                print 'Error while loading URL: ' + beer_url
+                print 'Error while loading URL: ' + brewery_url
                 print 'Trying again in 5 seconds...'
                 time.sleep(5)
 
                 try:
-                    brewery_info = get_brewery_infos(beer_url)
+                    brewery_info = get_brewery_infos(brewery_url)
                 except Exception, e:
                     error_list.append(brewery_url)
                     print 'Could not load URL: ' + brewery_url
@@ -788,7 +793,7 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
                     print 'Moving on to the next.'
 
             if brewery_info:
-                temp_array.append(beer_info)
+                temp_array.append(brewery_info)
                 number_brewery += 1
                 if number_limit > 0 and number_brewery >= number_limit:
 

@@ -27,7 +27,7 @@ except FeatureNotFound:
 
 
 def get_styles_url_and_names():
-    """Get beer style URL
+    """ Get beer style URL
 
     Returns a dict linking an url to a beer style and its global type
     """
@@ -70,10 +70,8 @@ def get_styles_url_and_names():
 
 
 def make_soup(url):
-    """Get soup object from url
+    """Get soup object from url """
 
-    Currently based on lxml parser for speed.
-    """
     r = requests.get(url)
     if r.status_code != requests.codes.ok:
         raise Exception('Error: status code is %s for URL: %s',
@@ -99,7 +97,8 @@ def find_last_number_of_subpages(soup, url):
     """
 
     #5th div
-    div_with_last = soup.body.findAll(id='baContent')[0].findAll('div', recursive=False)[4]
+    div_with_last = (soup.body.findAll(id='baContent')[0]
+                     .findAll('div', recursive=False)[4])
 
     # Check that it has subpages
     if div_with_last.b:
@@ -131,9 +130,8 @@ def find_max(url):
 
 
 def get_substyle_url(url):
-    """From a style get all the pages of the style
+    """From a style get all the pages of the style """
 
-    """
     substyle_urls = []
     start = 0
     mymax = int(find_max(url))
@@ -194,7 +192,8 @@ def get_beer_infos(beer_profile_url):
         if parser == parser_lxml:
             infos_tbody = infos_tr.find_all('td', recursive=False)[1].table
         elif parser == parser_html5:
-            infos_tbody = infos_tr.find_all('td', recursive=False)[1].table.tbody
+            infos_tbody = (infos_tr.find_all('td', recursive=False)[1]
+                           .table.tbody)
         else:
             logger.error('Unhandled parser: ' + parser)
             raise
@@ -290,6 +289,15 @@ def get_beer_infos(beer_profile_url):
 
 
 def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
+    """ Writes beer infos to a CSV file
+
+    Writes beer infos extracted from the pages defined in list_url.
+
+    Keyword arguments:
+    list_url -- List of beer profile URLs
+    dest_file_path -- Path to the csv file to write
+    number_limit -- Number of beer profiles scrapped before writing to file.
+    """
 
     dest_file = open(dest_file_path, 'wb')
     try:
@@ -378,10 +386,13 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
 def write_unicode_csv_rows(dicts, csv_writer):
     """Writes the dictionaries using the csv writer
 
+    dicts -- Dictionaries to write
+    csv_writer -- CSV writer instanciated
     """
     for dict_row in dicts:
         try:
-            csv_writer.writerow({k: v.encode("utf-8").strip() if v else '' for k, v in dict_row.items()})
+            csv_writer.writerow({k: v.encode("utf-8").strip()
+                                if v else '' for k, v in dict_row.items()})
         except Exception, e:
             print 'Error writing line: ' + str(dict_row)
             print str(e)
@@ -686,8 +697,7 @@ def get_brewery_from_beer(url) :
     return 'http://www.beeradvocate.com/beer/profile/'+str(brew_id)
 
 def get_brewery_id(url):
-    ''' get brewery id from url
-    '''
+    ''' get brewery id from url '''
     return re.search('profile/(\d+)?/$', url).group(1)
 
 def get_brewery_infos(url):
@@ -716,13 +726,13 @@ def get_brewery_infos(url):
         address['region'] = country[0].contents[0]
         address['country'] = country[1].contents[0]
         address['postal_code'] = re.search(', (.*)',country[1].previous_sibling.previous_sibling).group(1)
-    else : 
+    else:
         address['region'] = ''
         address['country'] = country[0].contents[0]
         address['postal_code'] = re.search(', (.*)',country[0].previous_sibling.previous_sibling).group(1)
-    # phone 
+    # phone
     brewery_infos['phone'] = re.search('phone: ([^<>]*)[<>]', str(a)).group(1)
     brewery_infos['address'] = address
-    # website 
+    # website
     brewery_infos['website'] = a.findAll('img', attrs= {'alt':'visit their website'})[0].parent['href']
     return brewery_infos

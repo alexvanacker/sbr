@@ -775,7 +775,6 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
                 found_good_url = True
             except:
                 index += 1
-                raise
 
         field_names = sample_infos.keys()
         csv_writer = csv.DictWriter(dest_file, fieldnames=field_names)

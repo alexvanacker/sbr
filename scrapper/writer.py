@@ -87,11 +87,12 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
         print 'Number of errors: ' + str(len(error_list))
 
         # Write errors to file
-        current_time = time.strftime('%Y_%m_%d_%H_%M_%S')
-        error_file_name = 'beer_info_errors_'+current_time+'.txt'
-        error_file = open(error_file_name, 'w')
-        error_file.writelines(error_list)
-        error_file.close()
+        if error_list:
+            current_time = time.strftime('%Y_%m_%d_%H_%M_%S')
+            error_file_name = 'beer_info_errors_'+current_time+'.txt'
+            error_file = open(error_file_name, 'w')
+            error_file.writelines(error_list)
+            error_file.close()
 
     except Exception, e:
         print 'Global error while writing beer info to ' + dest_file_path

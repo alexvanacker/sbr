@@ -707,7 +707,7 @@ def get_brewery_infos(url):
     brewery_infos['url'] = url
     # id, no need for soup
     brewery_infos['brewery_id'] = get_brewery_id(url)
-    ## now the soup 
+    # now the soup 
     soup = make_soup(url)
     # name
     brewery_infos['name'] = soup.findAll('div',attrs = {'class' : 'titleBar'})[0].h1.contents[0]
@@ -716,25 +716,41 @@ def get_brewery_infos(url):
     brewery_infos['image_url'] = baContent.table.tr.td.img['src']
     # address
     a = baContent.table.table
-    city = a.findAll(attrs={'href':re.compile(".*/place/list.*", re.I)})[0]
-    brewery_infos['city'] = city.contents[0]
-    brewery_infos['address'] = city.previous_sibling.previous_sibling
-    a = city.parent # less to search later
-    country = a.findAll(attrs={'href':re.compile(".*/place/directory/.*", re.I)})
-    if len(country) == 2 :
-        brewery_infos['region'] = country[0].contents[0]
-        brewery_infos['country'] = country[1].contents[0]
-        brewery_infos['postal_code'] = re.search(', (.*)',country[1].previous_sibling.previous_sibling).group(1)
-    else:
+    try:
+        city = a.findAll(attrs={'href':re.compile(".*/place/list.*", re.I)})[0]
+        brewery_infos['city'] = city.contents[0]
+        brewery_infos['address'] = city.previous_sibling.previous_sibling
+    except:     
+        brewery_infos['city'] = ''
+        brewery_infos['address'] = ''
+    try:
+        country = a.findAll(attrs={'href':re.compile(".*/place/directory/.*", re.I)})
+        if len(country) == 2 :
+            brewery_infos['region'] = country[0].contents[0]
+            brewery_infos['country'] = country[1].contents[0]
+            try: 
+                brewery_infos['postal_code'] = re.search(', (.*)',country[1].previous_sibling.previous_sibling).group(1)
+            except: 
+                brewery_infos['postal_code'] = ''
+        else:
+            brewery_infos['region'] = ''
+            brewery_infos['country'] = country[0].contents[0]
+            try:
+                brewery_infos['postal_code'] = re.search(', (.*)',country[0].previous_sibling.previous_sibling).group(1)
+            except : 
+                brewery_infos['postal_code'] = ''
+    except: 
         brewery_infos['region'] = ''
-        brewery_infos['country'] = country[0].contents[0]
-        brewery_infos['postal_code'] = re.search(', (.*)',country[0].previous_sibling.previous_sibling).group(1)
+        brewery_infos['country'] = ''
     # phone
-    brewery_infos['phone'] = re.search('phone: ([^<>]*)[<>]', str(a)).group(1)
-    # website
-    try : 
-        brewery_infos['website'] = a.findAll('img', attrs= {'alt':'visit their website'})[0].parent['href']
+    try :
+        brewery_infos['phone'] = re.search('phone: ([^<>]*)[<>]', str(a)).group(1)
     except : 
+        brewery_infos['phone'] = ''
+    # website
+    try: 
+        brewery_infos['website'] = a.findAll('img', attrs= {'alt':'visit their website'})[0].parent['href']
+    except: 
         brewery_infos['website'] = ''
 
     return brewery_infos

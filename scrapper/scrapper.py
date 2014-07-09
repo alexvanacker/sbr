@@ -704,4 +704,25 @@ def get_brewery_infos(url):
     baContent = soup.findAll('div',attrs = {'id' : 'baContent'})[0]
     # image
     brewery_infos['image_url'] = baContent.table.tr.td.img['src']
+    # address
+    address = {}
+    a = baContent.table.table
+    city = a.findAll(attrs={'href':re.compile(".*/place/list.*", re.I)})[0]
+    address['city'] = city.contents[0]
+    address['address'] = city.previous_sibling.previous_sibling
+    a = city.parent # less to search later
+    country = a.findAll(attrs={'href':re.compile(".*/place/directory/.*", re.I)})
+    if len(country) == 2 :
+        address['region'] = country[0].contents[0]
+        address['country'] = country[1].contents[0]
+        address['postal_code'] = re.search(', (.*)',country[1].previous_sibling.previous_sibling).group(1)
+    else : 
+        address['region'] = ''
+        address['country'] = country[0].contents[0]
+        address['postal_code'] = re.search(', (.*)',country[0].previous_sibling.previous_sibling).group(1)
+    # phone 
+    brewery_infos['phone'] = re.search('phone: ([^<>]*)[<>]', str(a)).group(1)
+    brewery_infos['address'] = address
+    # website 
+    brewery_infos['website'] = a.findAll('img', attrs= {'alt':'visit their website'})[0].parent['href']
     return brewery_infos

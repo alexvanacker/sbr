@@ -9,6 +9,7 @@ import logging
 import logging.config
 from bs4 import BeautifulSoup
 from bs4 import FeatureNotFound
+from bs4 import NavigableString
 
 
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ parser_html5 = "html5lib"
 parser = parser_lxml
 try:
     test_soup = BeautifulSoup('<html></html>', parser)
+    print 'Using parser : ' + parser
 except FeatureNotFound:
     # print because logger may not be defined at this stage
     print parser + ' not found, switching to '+parser_html5
@@ -67,6 +69,24 @@ def get_styles_url_and_names():
                     previous_element = next_element
 
     return global_list
+
+
+def test_access_url(url, time_pause_sec=5):
+    """ Test if URL is accessible
+
+    If fails, tries again in timeout seconds.
+    If a second fail occurs, considers URL not accessible
+
+    url -- URL to test_soup
+    time_pause_sec -- Time to wait between two tries in seconds
+    """
+    r = requests.get(url)
+    if r.status_code != requests.codes.ok:
+        time.sleep(5)
+        r = requests.get(url)
+        if r.status_code != requests.codes.ok:
+            raise Exception('Error: status code is %s for URL: %s',
+                            str(r.status_code), url)
 
 
 def make_soup(url):
@@ -509,13 +529,13 @@ def get_beer_comments_and_ratings(beer_profile_url):
         start = start + 25
 
     for suburl in comments_and_ratings_urls:
-        ratings_and_reviews = extract_comments_and_ratings_from_url(suburl)
+        ratings_and_reviews = extract_reviews_from_url(suburl)
         comments_and_ratings.extend(ratings_and_reviews)
 
     return comments_and_ratings
 
 
-def extract_comments_and_ratings_from_url(url):
+def extract_reviews_from_url(url):
     try:
 
         # Clean end of URL to get the main Beer URL
@@ -574,9 +594,11 @@ def extract_comments_and_ratings_from_url(url):
             # Get all siblings, in any case
             all_siblings = current_el.next_siblings
             # Remove all tags from the siblings
-            true_siblings = [x for x in all_siblings if not x.name]
+            true_siblings = [x for x in all_siblings
+                             if isinstance(x, NavigableString) or not x.name]
 
-            if not current_el.name or not 'br' in current_el.name:
+            if (not isinstance(current_el, NavigableString)
+                    and (not current_el.name or not 'br' in current_el.name)):
                 # It's a review, let's parse it
 
                 # Current element is look, taste, etc. notes
@@ -690,15 +712,18 @@ def get_user_infos(user_url):
         user_infos[info[0]] = info[1]
     return user_infos
 
+
 def get_brewery_from_beer(url) :
     ''' given a beer url generates the corresponding brewery url
     '''
     brew_id = re.search('profile/(\d*)/', url).group(1)
     return 'http://www.beeradvocate.com/beer/profile/'+str(brew_id)
 
+
 def get_brewery_id(url):
     ''' get brewery id from url '''
     return re.search('profile/(\d+)/?$', url).group(1)
+
 
 def get_brewery_infos(url):
     ''' get all brewery infos from url
@@ -707,7 +732,7 @@ def get_brewery_infos(url):
     brewery_infos['url'] = url
     # id, no need for soup
     brewery_infos['brewery_id'] = get_brewery_id(url)
-    # now the soup 
+    # now the soup
     soup = make_soup(url)
     # name
     brewery_infos['name'] = soup.findAll('div',attrs = {'class' : 'titleBar'})[0].h1.contents[0]
@@ -720,47 +745,48 @@ def get_brewery_infos(url):
         city = a.findAll(attrs={'href':re.compile(".*/place/list.*", re.I)})[0]
         brewery_infos['city'] = city.contents[0]
         brewery_infos['address'] = city.previous_sibling.previous_sibling
-    except:     
+    except:
         brewery_infos['city'] = ''
         brewery_infos['address'] = ''
     try:
         country = a.findAll(attrs={'href':re.compile(".*/place/directory/.*", re.I)})
-        if len(country) == 2 :
+        if len(country) == 2:
             brewery_infos['region'] = country[0].contents[0]
             brewery_infos['country'] = country[1].contents[0]
-            try: 
+            try:
                 brewery_infos['postal_code'] = re.search(', (.*)',country[1].previous_sibling.previous_sibling).group(1)
-            except: 
+            except:
                 brewery_infos['postal_code'] = ''
         else:
             brewery_infos['region'] = ''
             brewery_infos['country'] = country[0].contents[0]
             try:
                 brewery_infos['postal_code'] = re.search(', (.*)',country[0].previous_sibling.previous_sibling).group(1)
-            except : 
+            except:
                 brewery_infos['postal_code'] = ''
-    except: 
+    except:
         brewery_infos['region'] = ''
         brewery_infos['country'] = ''
     # phone
-    try :
+    try:
         brewery_infos['phone'] = re.search('phone: ([^<>]*)[<>]', str(a)).group(1)
-    except : 
+    except:
         brewery_infos['phone'] = ''
     # website
-    try: 
+    try:
         brewery_infos['website'] = a.findAll('img', attrs= {'alt':'visit their website'})[0].parent['href']
-    except: 
+    except:
         brewery_infos['website'] = ''
 
     return brewery_infos
+
 
 def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
     """ scrap and write all brewery infos into a csv
     """
     dest_file = open(dest_file_path, 'wb')
     try:
-        
+
         nb_brewery = len(list_url)
         print 'Writing brewery data to ' + dest_file_path
         print 'Number of URLs to process: ' + str(nb_brewery)
@@ -833,7 +859,7 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
         error_file = open(error_file_name, 'w')
         error_file.writelines(error_list)
         error_file.close()
-    
+
     except Exception, e:
         print 'Global error while writing brewery info to ' + dest_file_path
         print str(e)
@@ -841,4 +867,3 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
 
     finally:
         dest_file.close()
-

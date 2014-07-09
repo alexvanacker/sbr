@@ -755,7 +755,7 @@ def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
             if index > nb_brewery - 1:
                 raise Exception('Could not find one URL that could be reached.')
             try:
-		print list_url[index]
+                print list_url[index]
                 sample_infos = get_brewery_infos(list_url[index])
                 found_good_url = True
             except:

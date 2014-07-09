@@ -245,9 +245,10 @@ def get_beer_infos(beer_profile_url):
                             brewery = content.find_next('a').b.string
                             info_dict['brewery'] = brewery
 
-                if not found_place and content.name  \
-                        and 'a' in content.name \
-                        and 'place' in content['href']:
+                if (not found_place and not isinstance(content, NavigableString)
+                        and content.name
+                        and 'a' in content.name
+                        and 'place' in content['href']):
                     location = ''
                     double_break = False
                     previous_was_br = False
@@ -260,7 +261,10 @@ def get_beer_infos(beer_profile_url):
                         if el.string:
                             location += ' ' + el.string.strip()
 
-                        el_name = el.name
+                        el_name = None
+                        if not isinstance(el, NavigableString):
+                            el_name = el.name
+
                         if el_name and 'br' in el_name:
                             double_break = previous_was_br
                             previous_was_br = True

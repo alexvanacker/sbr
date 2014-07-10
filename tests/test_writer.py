@@ -19,6 +19,14 @@ class WriterTest(unittest.TestCase):
         csv_file = 'test.csv'
         writer.write_all_beer_infos(list_url, csv_file)
 
+    def test_write_brewery_info(self):
+        list_url = ['http://www.beeradvocate.com/beer/profile/24252/',
+                    'http://www.beeradvocate.com/beer/profile/3079/',
+                    'http://www.beeradvocate.com/beer/profile/887/',
+                    'http://www.beeradvocate.com/beer/profile/4067',
+                    'http://www.beeradvocate.com/beer/profile/1536/']
+        csv_file = 'test.csv'
+        writer.write_all_brewery_infos(list_url, csv_file)
 
 def main():
     unittest.main()

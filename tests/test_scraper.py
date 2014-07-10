@@ -17,7 +17,7 @@ class ScraperTest(unittest.TestCase):
         for url in list_url:
             scrapper.get_beer_infos(url)
 
-    def test_get_brewery_infos(self) :
+    def test_get_brewery_infos(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/24252/',
                     'http://www.beeradvocate.com/beer/profile/3079/',
                     'http://www.beeradvocate.com/beer/profile/887/',
@@ -25,15 +25,16 @@ class ScraperTest(unittest.TestCase):
                     'http://www.beeradvocate.com/beer/profile/1536/']
 
         for url in list_url:
-            scrapper.get_brewery_infos(url)        
+            scrapper.get_brewery_infos(url)
 
-
-    def test_get_user_infos(self) :
-        list_url = ['http://www.beeradvocate.com/community/members/le_scratch.813128/',
-                    'http://www.beeradvocate.com/community/members/zekeman17.427655/'] 
+    def test_get_user_infos(self):
+        list_url = [
+            'http://www.beeradvocate.com/community/members/le_scratch.813128/',
+            'http://www.beeradvocate.com/community/members/zekeman17.427655/'
+        ]
 
         for url in list_url:
-            scrapper.get_user_infos(url)        
+            scrapper.get_user_infos(url)
 
 
 def main():

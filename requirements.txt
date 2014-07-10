@@ -1,4 +1,4 @@
-beautifulsoup4=4.3.2
+beautifulsoup4==4.3.2
 requests==2.3.0
 pytest==2.5.2
 html5lib==1.0b3

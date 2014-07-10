@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import unittest
 from scrapper import writer
 import os
+import csv
 
 
 class WriterTest(unittest.TestCase):
@@ -10,8 +13,14 @@ class WriterTest(unittest.TestCase):
         self.csv_file = 'test.csv'
 
     def tearDown(self):
-        if os.path.exist(self.csv_file):
+        if os.path.exists(self.csv_file):
             os.remove(self.csv_file)
+
+    def test_unicode_write(self):
+        dest_file = open(self.csv_file, 'wb')
+        csv_writer = csv.DictWriter(dest_file, fieldnames=['test'])
+        dicts = [{'test': '02 21  16 00 60'}]
+        writer.write_unicode_csv_rows(dicts, csv_writer)
 
     def test_write_reviews(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/26/42349/']

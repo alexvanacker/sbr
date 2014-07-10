@@ -219,12 +219,29 @@ def write_unicode_csv_rows(dicts, csv_writer):
     """
     for dict_row in dicts:
         try:
-            csv_writer.writerow({k: v.encode("utf-8").strip()
+            csv_writer.writerow({k: try_unicode_encode(v)
                                 if v else '' for k, v in dict_row.items()})
         except Exception, e:
             print 'Error writing line: ' + str(dict_row)
             print str(e)
             raise
+
+
+def try_unicode_encode(v):
+    """ Encodes string  in utf-8 and strips it.
+
+    Tries to decode from utf-8 first.
+
+    v -- String to encode
+    """
+    value = v
+    try:
+        value = v.decode('utf-8')
+    except:
+        pass
+
+    value = value.encode('utf-8').strip()
+    return value
 
 
 def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):

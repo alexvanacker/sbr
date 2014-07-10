@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import requests
-import csv
 import time
 import re
 import logging
@@ -312,22 +311,6 @@ def get_beer_infos(beer_profile_url):
         raise
 
 
-def write_unicode_csv_rows(dicts, csv_writer):
-    """Writes the dictionaries using the csv writer
-
-    dicts -- Dictionaries to write
-    csv_writer -- CSV writer instanciated
-    """
-    for dict_row in dicts:
-        try:
-            csv_writer.writerow({k: v.encode("utf-8").strip()
-                                if v else '' for k, v in dict_row.items()})
-        except Exception, e:
-            print 'Error writing line: ' + str(dict_row)
-            print str(e)
-            raise
-
-
 def fast_count_number_of_beers():
     logger.info('Fast counting number of beers...')
     dict_url_styles = get_styles_url_and_names()
@@ -622,9 +605,8 @@ def get_user_infos(user_url):
     return user_infos
 
 
-def get_brewery_from_beer(url) :
-    ''' given a beer url generates the corresponding brewery url
-    '''
+def get_brewery_from_beer(url):
+    """ given a beer url generates the corresponding brewery url """
     brew_id = re.search('profile/(\d*)/', url).group(1)
     return 'http://www.beeradvocate.com/beer/profile/'+str(brew_id)
 
@@ -644,21 +626,21 @@ def get_brewery_infos(url):
     # now the soup
     soup = make_soup(url)
     # name
-    brewery_infos['name'] = soup.findAll('div',attrs = {'class' : 'titleBar'})[0].h1.contents[0]
-    baContent = soup.findAll('div',attrs = {'id' : 'baContent'})[0]
+    brewery_infos['name'] = soup.findAll('div', attrs={'class' : 'titleBar'})[0].h1.contents[0]
+    baContent = soup.findAll('div', attrs={'id': 'baContent'})[0]
     # image
     brewery_infos['image_url'] = baContent.table.tr.td.img['src']
     # address
     a = baContent.table.table
     try:
-        city = a.findAll(attrs={'href':re.compile(".*/place/list.*", re.I)})[0]
+        city = a.findAll(attrs={'href': re.compile(".*/place/list.*", re.I)})[0]
         brewery_infos['city'] = city.contents[0]
         brewery_infos['address'] = city.previous_sibling.previous_sibling
     except:
         brewery_infos['city'] = ''
         brewery_infos['address'] = ''
     try:
-        country = a.findAll(attrs={'href':re.compile(".*/place/directory/.*", re.I)})
+        country = a.findAll(attrs={'href': re.compile(".*/place/directory/.*", re.I)})
         if len(country) == 2:
             brewery_infos['region'] = country[0].contents[0]
             brewery_infos['country'] = country[1].contents[0]
@@ -688,91 +670,3 @@ def get_brewery_infos(url):
         brewery_infos['website'] = ''
 
     return brewery_infos
-
-
-def write_all_brewery_infos(list_url, dest_file_path, number_limit=0):
-    """ scrap and write all brewery infos into a csv
-    """
-    dest_file = open(dest_file_path, 'wb')
-    try:
-
-        nb_brewery = len(list_url)
-        print 'Writing brewery data to ' + dest_file_path
-        print 'Number of URLs to process: ' + str(nb_brewery)
-        # get the first url and fetch its info to create the csv header
-        found_good_url = False
-        index = 0
-        while not found_good_url:
-            if index > nb_brewery - 1:
-                raise Exception('Could not find one URL that could be reached.')
-            try:
-                sample_infos = get_brewery_infos(list_url[index])
-                found_good_url = True
-            except:
-                index += 1
-
-        field_names = sample_infos.keys()
-        csv_writer = csv.DictWriter(dest_file, fieldnames=field_names)
-        csv_writer.writeheader()
-
-        number_brewery = 0
-        total_processed = 0
-        total_brewery = len(list_url)
-        temp_array = []
-        # Keep URLs that have failed
-        error_list = []
-
-        for brewery_url in list_url:
-            brewery_info = None
-            total_processed += 1
-            try:
-                brewery_info = get_brewery_infos(brewery_url)
-            except:
-                print 'Error while loading URL: ' + brewery_url
-                print 'Trying again in 5 seconds...'
-                time.sleep(5)
-
-                try:
-                    brewery_info = get_brewery_infos(brewery_url)
-                except Exception, e:
-                    error_list.append(brewery_url)
-                    print 'Could not load URL: ' + brewery_url
-                    print str(e)
-                    print 'Moving on to the next.'
-
-            if brewery_info:
-                temp_array.append(brewery_info)
-                number_brewery += 1
-                if number_limit > 0 and number_brewery >= number_limit:
-
-                    # write to disk
-                    write_unicode_csv_rows(temp_array, csv_writer)
-
-                    # Reset to 0
-                    number_brewery = 0
-                    temp_array = []
-
-                    # Some feedback is nice
-                    percent_processed = total_processed * 100 / total_brewery
-                    print 'Processed: ' + str(percent_processed) + '%'
-
-        # Finish writing
-        write_unicode_csv_rows(temp_array, csv_writer)
-
-        print 'Finished writing brewery to ' + dest_file_path
-        print 'Number of errors: ' + str(len(error_list))
-
-        # Write errors to file
-        current_time = time.strftime('%Y_%m_%d_%H_%M_%S')
-        error_file_name = 'brewery_info_errors_'+current_time+'.txt'
-        error_file = open(error_file_name, 'w')
-        error_file.writelines(error_list)
-        error_file.close()
-
-    except Exception, e:
-        print 'Global error while writing brewery info to ' + dest_file_path
-        print str(e)
-        raise
-
-    finally:
-        dest_file.close()

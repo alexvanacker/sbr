@@ -10,7 +10,8 @@ class WriterTest(unittest.TestCase):
         self.csv_file = 'test.csv'
 
     def tearDown(self):
-        os.remove(self.csv_file)
+        if os.path.exist(self.csv_file):
+            os.remove(self.csv_file)
 
     def test_write_reviews(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/26/42349/']

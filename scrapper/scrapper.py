@@ -84,8 +84,8 @@ def test_access_url(url, time_pause_sec=5):
         time.sleep(5)
         r = requests.get(url)
         if r.status_code != requests.codes.ok:
-            raise Exception('Error: status code is %s for URL: %s',
-                            str(r.status_code), url)
+            raise Exception('Error: status code is %s for URL: %s' %
+                            (str(r.status_code), url))
 
 
 def make_soup(url):
@@ -93,8 +93,9 @@ def make_soup(url):
 
     r = requests.get(url)
     if r.status_code != requests.codes.ok:
-        raise Exception('Error: status code is %s for URL: %s',
-                        str(r.status_code), url)
+        raise Exception('Error: status code is %s for URL: %s' %
+                        (str(r.status_code), url))
+
     contents = r.content
 
     soup = BeautifulSoup(contents, parser)
@@ -102,9 +103,8 @@ def make_soup(url):
 
 
 def find_last_number_of_subpages_from_url(url):
-    """ Wrapper method for finding last subpage for given URL
+    """ Wrapper method for finding last subpage for given URL """
 
-    """
     soup = make_soup(url)
     return find_last_number_of_subpages(soup, url)
 

@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import csv
+import os
 import scrapper
 import time
 
@@ -103,7 +104,8 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
         dest_file.close()
 
 
-def write_all_beers_reviews(list_url, dest_file_path, limit=0):
+def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
+                            size_limit=0, compress=True):
     """ Writes every beers' reviews to a file
 
     For each beer URL given, fetches the reviews from it (and its subpages)
@@ -112,7 +114,10 @@ def write_all_beers_reviews(list_url, dest_file_path, limit=0):
 
     list_url -- list of beer URLs to process
     dest_file_path -- path to the output file
-    limit -- number of reviews to store before writing to file (default = 0)
+    write_every_nbr -- number of reviews to store before writing to file
+    (default = 0)
+    size_limit -- Size limit for the file in Mb (default = 0)
+    compress -- Write the CSV file as a compressed file (default = True)
     """
     # Prepare CSV writer
     dest_file = open(dest_file_path, 'wb')
@@ -138,7 +143,8 @@ def write_all_beers_reviews(list_url, dest_file_path, limit=0):
         csv_writer.writeheader()
 
         for beer_url in list_url:
-            write_beer_reviews(beer_url, csv_writer, limit)
+            write_beer_reviews(beer_url, csv_writer, write_every_nbr,
+                               size_limit)
 
     except:
         print 'Global error while writing reviews to ' + dest_file_path
@@ -148,12 +154,36 @@ def write_all_beers_reviews(list_url, dest_file_path, limit=0):
         dest_file.close()
 
 
-def write_beer_reviews(beer_url, csv_writer, limit=0):
+def is_file_above_limit(filepath, limit=0):
+    """ Checks if given filepath has size above given limit.
+
+    Returns true if size if above the limit, false otherwise. Raises an
+    exception if the file does not exist.
+
+    filepath -- Path to the file to check
+    limit -- Size limit in Mb
+    """
+
+    if not os.path.exists(filepath):
+        raise Exception('File does not exist: '+filepath)
+
+    size_in_b = os.path.getsize(filepath)
+    size_in_mb = size_in_b / (1024 * 1024)
+    if limit > 0 and size_in_mb > limit:
+        return True
+    else:
+        return False
+
+
+def write_beer_reviews(beer_url, csv_writer, write_every_nbr=0,
+                       size_limit=0):
     """ Writes a beer's reviews to csv file
 
     beer_url -- beer profile URL
     csv_writer -- CSV writer for the csv file
-    limit -- number of reviews to store before writing to file (default = 0)
+    write_every_nbr -- number of reviews to store before writing to file
+    (default = 0)
+    size_limit -- Size limit for the file in Mb (default = 0)
     """
     reviews = []
     error_list = []
@@ -196,7 +226,7 @@ def write_beer_reviews(beer_url, csv_writer, limit=0):
             if beer_reviews:
                 reviews.extend(beer_reviews)
 
-                if limit > 0 and len(reviews) > limit:
+                if write_every_nbr > 0 and len(reviews) > write_every_nbr:
                     write_unicode_csv_rows(reviews, csv_writer)
 
                     # Reset

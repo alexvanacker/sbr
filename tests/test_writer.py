@@ -32,7 +32,7 @@ class WriterTest(unittest.TestCase):
         writer.write_all_beer_infos(list_url, self.csv_file)
 
         # test info
-        csv_reader = csv.DictReader(open('test.csv', 'rb'))
+        csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
         for line in csv_reader:
             if (line['beer_url'] ==
                     'http://www.beeradvocate.com/beer/profile/694/15881/'):
@@ -45,6 +45,15 @@ class WriterTest(unittest.TestCase):
                     'http://www.beeradvocate.com/beer/profile/4067',
                     'http://www.beeradvocate.com/beer/profile/1536/']
         writer.write_all_brewery_infos(list_url, self.csv_file)
+
+        # Test info
+        csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
+        for line in csv_reader:
+            url = line['url']
+            if (url ==
+                    'http://www.beeradvocate.com/beer/profile/1536/'):
+                self.assertEqual(line['country'], 'Germany',
+                                 'Expecting country Germany for ' + url)
 
 
 def main():

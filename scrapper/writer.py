@@ -7,32 +7,26 @@ import scrapper
 import time
 
 
-def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
-    """ Writes beer infos to a CSV file
-
-    Writes beer infos extracted from the pages defined in list_url.
-
-    Keyword arguments:
-    list_url -- List of beer profile URLs
-    dest_file_path -- Path to the csv file to write
-    number_limit -- Number of beer profiles scrapped before writing to file.
-    """
+def global_writer(list_url, dest_file_path, scrapper_function,
+                  write_every_nbr=0, size_limit=0, compress=True):
+    """ Writer interface for any writer """
 
     dest_file = open(dest_file_path, 'wb')
     try:
-        nb_beers = len(list_url)
-        print 'Writing beer data to ' + dest_file_path
-        print 'Number of URLs to process: ' + str(nb_beers)
-        # get the first url and fetch its info to create the csv header
+        nb_elements = len(list_url)
+        print 'Writing file: ' + dest_file_path
+        print 'Number of URLs to process: ' + str(nb_elements)
+
+         # Get the first url and fetch its info to create the csv header
         found_good_url = False
         index = 0
         while not found_good_url:
             try:
-                sample_infos = scrapper.get_beer_infos(list_url[index])
+                sample_infos = scrapper_function(list_url[index])
                 found_good_url = True
             except:
                 index += 1
-                if index > nb_beers - 1:
+                if index > nb_elements - 1:
                     print 'Could not find one URL that could be reached.'
                     raise
 
@@ -40,45 +34,46 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
         csv_writer = csv.DictWriter(dest_file, fieldnames=field_names)
         csv_writer.writeheader()
 
-        number_beer = 0
+        current_processed = 0
         total_processed = 0
-        total_beers = len(list_url)
         temp_array = []
         # Keep URLs that have failed
         error_list = []
 
-        for beer_url in list_url:
-            beer_info = None
+        for url in list_url:
+            info = None
             total_processed += 1
             try:
-                beer_info = scrapper.get_beer_infos(beer_url)
+                info = scrapper_function(url)
             except:
-                print 'Error while loading URL: ' + beer_url
+                print 'Error while loading URL: ' + url
                 print 'Trying again in 5 seconds...'
                 time.sleep(5)
 
                 try:
-                    beer_info = scrapper.get_beer_infos(beer_url)
+                    info = scrapper_function(url)
+
                 except Exception, e:
-                    error_list.append(beer_url)
-                    print 'Could not load URL: ' + beer_url
+                    error_list.append(url)
+                    current_processed += 1
+                    print 'Could not load URL: ' + url
                     print str(e)
                     print 'Moving on to the next.'
 
-            if beer_info:
-                temp_array.append(beer_info)
-                number_beer += 1
-                if number_limit > 0 and number_beer >= number_limit:
+            if info:
+                temp_array.append(info)
+                current_processed += 1
+                if write_every_nbr > 0 and current_processed >= write_every_nbr:
 
                     # write to disk
                     write_unicode_csv_rows(temp_array, csv_writer)
 
                     # Reset to 0
-                    number_beer = 0
+                    current_processed = 0
                     temp_array = []
 
                     # Some feedback is nice
-                    percent_processed = total_processed * 100 / total_beers
+                    percent_processed = total_processed * 100 / nb_elements
                     print 'Processed: ' + str(percent_processed) + '%'
 
         # Finish writing
@@ -95,13 +90,26 @@ def write_all_beer_infos(list_url, dest_file_path, number_limit=0):
             error_file.writelines(error_list)
             error_file.close()
 
-    except Exception, e:
-        print 'Global error while writing beer info to ' + dest_file_path
-        print str(e)
+    except Exception:
+        print 'Error while writing data'
         raise
-
     finally:
         dest_file.close()
+
+
+def write_all_beer_infos(list_url, dest_file_path, write_every_nbr=0):
+    """ Writes beer infos to a CSV file
+
+    Writes beer infos extracted from the pages defined in list_url.
+
+    Keyword arguments:
+    list_url -- List of beer profile URLs
+    dest_file_path -- Path to the csv file to write
+    number_limit -- Number of beer profiles scrapped before writing to file.
+    """
+
+    global_writer(list_url, dest_file_path, scrapper.get_beer_infos,
+                  write_every_nbr)
 
 
 def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,

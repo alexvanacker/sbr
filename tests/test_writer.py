@@ -26,6 +26,13 @@ class WriterTest(unittest.TestCase):
         list_url = ['http://www.beeradvocate.com/beer/profile/26/42349/']
         writer.write_all_beers_reviews(list_url, self.csv_file)
 
+        # Test info
+        csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
+        for line in csv_reader:
+            if (line['user_url'] ==
+                    'http://www.beeradvocate.com/community/members/prager62.456999/'):
+                self.assertEquals(line['score'], '4.75')
+
     def test_write_beer_info(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/694/15881/',
                     'http://www.beeradvocate.com/beer/profile/26/42349/']

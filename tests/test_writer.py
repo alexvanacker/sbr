@@ -26,10 +26,24 @@ class WriterTest(unittest.TestCase):
         list_url = ['http://www.beeradvocate.com/beer/profile/26/42349/']
         writer.write_all_beers_reviews(list_url, self.csv_file)
 
+        # Test info
+        csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
+        for line in csv_reader:
+            if (line['user_url'] ==
+                    'http://www.beeradvocate.com/community/members/prager62.456999/'):
+                self.assertEquals(line['score'], '4.75')
+
     def test_write_beer_info(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/694/15881/',
                     'http://www.beeradvocate.com/beer/profile/26/42349/']
         writer.write_all_beer_infos(list_url, self.csv_file)
+
+        # test info
+        csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
+        for line in csv_reader:
+            if (line['beer_url'] ==
+                    'http://www.beeradvocate.com/beer/profile/694/15881/'):
+                self.assertEquals(line['abv'], '7.50')
 
     def test_write_brewery_info(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/24252/',
@@ -38,6 +52,15 @@ class WriterTest(unittest.TestCase):
                     'http://www.beeradvocate.com/beer/profile/4067',
                     'http://www.beeradvocate.com/beer/profile/1536/']
         writer.write_all_brewery_infos(list_url, self.csv_file)
+
+        # Test info
+        csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
+        for line in csv_reader:
+            url = line['url']
+            if (url ==
+                    'http://www.beeradvocate.com/beer/profile/1536/'):
+                self.assertEqual(line['country'], 'Germany',
+                                 'Expecting country Germany for ' + url)
 
 
 def main():

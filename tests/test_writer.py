@@ -5,6 +5,7 @@ import unittest
 from scrapper import writer
 import os
 import csv
+import gzip
 
 
 class WriterTest(unittest.TestCase):
@@ -24,7 +25,7 @@ class WriterTest(unittest.TestCase):
 
     def test_write_reviews(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/26/42349/']
-        writer.write_all_beers_reviews(list_url, self.csv_file)
+        writer.write_all_beers_reviews(list_url, self.csv_file, compress=False)
 
         # Test info
         csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
@@ -33,10 +34,21 @@ class WriterTest(unittest.TestCase):
                     'http://www.beeradvocate.com/community/members/prager62.456999/'):
                 self.assertEquals(line['score'], '4.75')
 
+    def test_write_reviews_compressed(self):
+        list_url = ['http://www.beeradvocate.com/beer/profile/26/42349/']
+        writer.write_all_beers_reviews(list_url, self.csv_file, compress=True)
+
+        # Test info
+        csv_reader = csv.DictReader(gzip.open(self.csv_file, 'rb'))
+        for line in csv_reader:
+            if (line['user_url'] ==
+                    'http://www.beeradvocate.com/community/members/prager62.456999/'):
+                self.assertEquals(line['score'], '4.75')
+
     def test_write_beer_info(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/694/15881/',
                     'http://www.beeradvocate.com/beer/profile/26/42349/']
-        writer.write_all_beer_infos(list_url, self.csv_file)
+        writer.write_all_beer_infos(list_url, self.csv_file, compress=False)
 
         # test info
         csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
@@ -51,7 +63,7 @@ class WriterTest(unittest.TestCase):
                     'http://www.beeradvocate.com/beer/profile/887/',
                     'http://www.beeradvocate.com/beer/profile/4067',
                     'http://www.beeradvocate.com/beer/profile/1536/']
-        writer.write_all_brewery_infos(list_url, self.csv_file)
+        writer.write_all_brewery_infos(list_url, self.csv_file, compress=False)
 
         # Test info
         csv_reader = csv.DictReader(open(self.csv_file, 'rb'))

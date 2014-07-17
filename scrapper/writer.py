@@ -5,16 +5,34 @@ import csv
 import os
 import scrapper
 import time
+import gzip
 
 
 def global_writer(list_url, dest_file_path, scrapper_function,
                   write_every_nbr=0, size_limit=0, compress=True):
-    """ Writer interface for any writer """
+    """ Writer interface for any writer
 
-    dest_file = open(dest_file_path, 'wb')
+    When writing a writer code, call this as your main writer.
+
+    list_url -- List of URLS on which to apply a scrapper function to write
+    information.
+    dest_file_path -- Path to the CSV file to write.
+    scrapper_function -- Function from the scrapper to apply to each URL.
+    write_every_nbr -- Number of URLs to process in memory before writing to
+    file. 0 means no limit. (default = 0)
+    size_limit -- Size limit to the result file in Mb. 0 means no limit.
+    (default = 0)
+    compress - Compress the resulting file or not. (default = True)
+    """
+
+    if compress:
+        dest_file = gzip.open(dest_file_path, 'wb')
+    else:
+        dest_file = open(dest_file_path, 'wb')
+
     try:
         nb_elements = len(list_url)
-        print 'Writing file: ' + dest_file_path
+        print 'Writing file: ' + os.path.abspath(dest_file.name)
         print 'Number of URLs to process: ' + str(nb_elements)
 
          # Get the first url and fetch its info to create the csv header
@@ -104,7 +122,8 @@ def global_writer(list_url, dest_file_path, scrapper_function,
         dest_file.close()
 
 
-def write_all_beer_infos(list_url, dest_file_path, write_every_nbr=0):
+def write_all_beer_infos(list_url, dest_file_path, write_every_nbr=0,
+                         compress=True):
     """ Writes beer infos to a CSV file
 
     Writes beer infos extracted from the pages defined in list_url.
@@ -116,7 +135,7 @@ def write_all_beer_infos(list_url, dest_file_path, write_every_nbr=0):
     """
 
     global_writer(list_url, dest_file_path, scrapper.get_beer_infos,
-                  write_every_nbr)
+                  write_every_nbr, compress=compress)
 
 
 def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
@@ -131,7 +150,7 @@ def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
     dest_file_path -- path to the output file
     write_every_nbr -- number of reviews to store before writing to file
     (default = 0)
-    size_limit -- Size limit for the file in Mb (default = 0)
+    size_limit -- Size limit for the file in Mb. 0 means no limit. (default = 0)
     compress -- Write the CSV file as a compressed file (default = True)
     """
 
@@ -210,8 +229,9 @@ def try_unicode_encode(v):
     return value
 
 
-def write_all_brewery_infos(list_url, dest_file_path, write_every_nbr=0):
+def write_all_brewery_infos(list_url, dest_file_path, write_every_nbr=0,
+                            compress=True):
     """ scrap and write all brewery infos into a csv  """
 
     global_writer(list_url, dest_file_path, scrapper.get_brewery_infos,
-                  write_every_nbr)
+                  write_every_nbr, compress=compress)

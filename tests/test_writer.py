@@ -23,6 +23,14 @@ class WriterTest(unittest.TestCase):
         dicts = [{'test': '02 21  16 00 60'}]
         writer.write_unicode_csv_rows(dicts, csv_writer)
 
+    def test_write_review_non_existing_url(self):
+        ''' Tests that if a URL does not exist, the script still carries on and
+        treats other URLs.
+        '''
+        list_url = ['http://www.beeradvocate.com//beer/profile/26520/114016/',
+                    'http://www.beeradvocate.com/beer/profile/26/42349/']
+        writer.write_all_beers_reviews(list_url, self.csv_file, compress=False)
+
     def test_write_reviews(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/26/42349/']
         writer.write_all_beers_reviews(list_url, self.csv_file, compress=False)

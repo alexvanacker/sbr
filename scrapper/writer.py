@@ -158,16 +158,31 @@ def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
     reviews_urls = []
 
     for beer_url in list_url:
-        last_page = scrapper.find_last_number_of_subpages_from_url(beer_url)
-        start = 0
-        last_page_int = int(last_page)
+        last_page = None
+        try:
+            last_page = scrapper.find_last_number_of_subpages_from_url(beer_url)
+        except:
+            print 'Error while loading URL: ' + beer_url
+            print 'Trying again in 5 seconds...'
+            time.sleep(5)
 
-        # Get list of review URLs for the beer
-        while start <= last_page_int:
-            url_ratings = beer_url + '?hideRatings=N&start=' + str(start)
-            reviews_urls.append(url_ratings)
-            # Reviews are 25 by 25
-            start = start + 25
+            try:
+               last_page = scrapper.find_last_number_of_subpages_from_url(beer_url)
+
+            except Exception:
+                print 'Could not load URL: ' + beer_url
+                print 'Moving on to the next.'
+
+        if last_page:
+            start = 0
+            last_page_int = int(last_page)
+
+            # Get list of review URLs for the beer
+            while start <= last_page_int:
+                url_ratings = beer_url + '?hideRatings=N&start=' + str(start)
+                reviews_urls.append(url_ratings)
+                # Reviews are 25 by 25
+                start = start + 25
 
     # Now we write
     global_writer(reviews_urls, dest_file_path,

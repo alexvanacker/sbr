@@ -6,6 +6,9 @@ import os
 import scrapper
 import time
 import gzip
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def global_writer(list_url, dest_file_path, scrapper_function,
@@ -38,6 +41,7 @@ def global_writer(list_url, dest_file_path, scrapper_function,
          # Get the first url and fetch its info to create the csv header
         found_good_url = False
         index = 0
+        logger.info('Defining CSV header...')
         while not found_good_url:
             try:
                 sample_infos = scrapper_function(list_url[index])
@@ -55,6 +59,7 @@ def global_writer(list_url, dest_file_path, scrapper_function,
 
         csv_writer = csv.DictWriter(dest_file, fieldnames=field_names)
         csv_writer.writeheader()
+        logger.info('Header written')
 
         current_processed = 0
         total_processed = 0
@@ -156,7 +161,7 @@ def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
 
     # Get the list of all review URLs
     reviews_urls = []
-
+    logger.info('Fetching all review URLs...')
     for beer_url in list_url:
         last_page = None
         try:
@@ -174,15 +179,16 @@ def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
                 print 'Moving on to the next.'
 
         if last_page:
+            # Get list of review URLs for the beer
             start = 0
             last_page_int = int(last_page)
+            all_nbr = range(start, last_page_int)
+            url_start = beer_url + '?hideRatings=N&start='
+            # Reviews are 25 by 25
+            reviews_urls.extend([url_start + str(x) for x in all_nbr[::25]])
 
-            # Get list of review URLs for the beer
-            while start <= last_page_int:
-                url_ratings = beer_url + '?hideRatings=N&start=' + str(start)
-                reviews_urls.append(url_ratings)
-                # Reviews are 25 by 25
-                start = start + 25
+
+    logger.info('Done fetching review URLs.')
 
     # Now we write
     global_writer(reviews_urls, dest_file_path,

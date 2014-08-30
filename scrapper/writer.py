@@ -5,6 +5,7 @@ import csv
 import os
 import scrapper
 import time
+import datetime
 import gzip
 import logging
 
@@ -35,8 +36,8 @@ def global_writer(list_url, dest_file_path, scrapper_function,
 
     try:
         nb_elements = len(list_url)
-        print 'Writing file: ' + os.path.abspath(dest_file.name)
-        print 'Number of URLs to process: ' + str(nb_elements)
+        logger.info('Writing file: ' + os.path.abspath(dest_file.name))
+        logger.info('Number of URLs to process: ' + str(nb_elements))
 
          # Get the first url and fetch its info to create the csv header
         found_good_url = False
@@ -49,7 +50,7 @@ def global_writer(list_url, dest_file_path, scrapper_function,
             except:
                 index += 1
                 if index > nb_elements - 1:
-                    print 'Could not find one URL that could be reached.'
+                    logger.error('Could not find a reachable URL.')
                     raise
 
         if isinstance(sample_infos, list):
@@ -66,15 +67,18 @@ def global_writer(list_url, dest_file_path, scrapper_function,
         temp_array = []
         # Keep URLs that have failed
         error_list = []
+        stop_writing = False
 
         for url in list_url:
+            if stop_writing:
+                break
             info = None
             total_processed += 1
             try:
                 info = scrapper_function(url)
             except:
-                print 'Error while loading URL: ' + url
-                print 'Trying again in 5 seconds...'
+                logger.debug('Error while loading URL: ' + url)
+                logger.debug('Trying again in 5 seconds...')
                 time.sleep(5)
 
                 try:
@@ -83,9 +87,8 @@ def global_writer(list_url, dest_file_path, scrapper_function,
                 except Exception, e:
                     error_list.append(url)
                     current_processed += 1
-                    print 'Could not load URL: ' + url
-                    print str(e)
-                    print 'Moving on to the next.'
+                    logger.warn('Could not load URL: ' + url, e)
+                    logger.warn('Moving on to the next.')
 
             if info:
                 if isinstance(info, list):
@@ -103,25 +106,34 @@ def global_writer(list_url, dest_file_path, scrapper_function,
                     temp_array = []
 
                     # Some feedback is nice
-                    percent_processed = total_processed * 100 / nb_elements
-                    print 'Processed: ' + str(percent_processed) + '%'
+                    percent_processed = float(total_processed) / float(nb_elements)
+                    logger.info('Processed: {:.2%}'.format(percent_processed))
+
+                    # Check file size
+                    if size_limit > 0 and is_file_above_limit(dest_file_path,
+                                                              limit=size_limit):
+
+                        logger.info('Size limit reached: %s MB. Stopping '
+                                    'write...' % str(size_limit))
+                        stop_writing = True
 
         # Finish writing
-        write_unicode_csv_rows(temp_array, csv_writer)
+        if not stop_writing:
+            write_unicode_csv_rows(temp_array, csv_writer)
 
-        print 'Finished writing beers to ' + dest_file_path
-        print 'Number of errors: ' + str(len(error_list))
+        logger.info('Finished writing beers to ' + dest_file_path)
+        logger.info('Number of errors: ' + str(len(error_list)))
 
         # Write errors to file
         if error_list:
             current_time = time.strftime('%Y_%m_%d_%H_%M_%S')
-            error_file_name = 'beer_info_errors_'+current_time+'.txt'
+            error_file_name = 'writer_errors_'+current_time+'.txt'
             error_file = open(error_file_name, 'w')
             error_file.writelines(error_list)
             error_file.close()
 
     except Exception:
-        print 'Error while writing data'
+        logger.error('Error while writing data', exc_info=True)
         raise
     finally:
         dest_file.close()
@@ -162,21 +174,22 @@ def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
     # Get the list of all review URLs
     reviews_urls = []
     logger.info('Fetching all review URLs...')
+    start_fetch = time.time()
     for beer_url in list_url:
         last_page = None
         try:
             last_page = scrapper.find_last_number_of_subpages_from_url(beer_url)
         except:
-            print 'Error while loading URL: ' + beer_url
-            print 'Trying again in 5 seconds...'
+            logger.warn('Error while loading URL: ' + beer_url)
+            logger.warn('Trying again in 5 seconds...')
             time.sleep(5)
 
             try:
                last_page = scrapper.find_last_number_of_subpages_from_url(beer_url)
 
             except Exception:
-                print 'Could not load URL: ' + beer_url
-                print 'Moving on to the next.'
+                logger.warn('Could not load URL: ' + beer_url)
+                logger.warn('Moving on to the next.')
 
         if last_page:
             # Get list of review URLs for the beer
@@ -186,9 +199,10 @@ def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
             url_start = beer_url + '?hideRatings=N&start='
             # Reviews are 25 by 25
             reviews_urls.extend([url_start + str(x) for x in all_nbr[::25]])
-
-
+    end_fetch = time.time()
+    total_time = end_fetch - start_fetch
     logger.info('Done fetching review URLs.')
+    logger.debug('Time: %s' % str(datetime.timedelta(seconds=total_time)))
 
     # Now we write
     global_writer(reviews_urls, dest_file_path,
@@ -199,7 +213,7 @@ def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
 def is_file_above_limit(filepath, limit=0):
     """ Checks if given filepath has size above given limit.
 
-    Returns true if size if above the limit, false otherwise. Raises an
+    Returns true if size is strictly above the limit, false otherwise. Raises an
     exception if the file does not exist.
 
     filepath -- Path to the file to check
@@ -209,12 +223,15 @@ def is_file_above_limit(filepath, limit=0):
     if not os.path.exists(filepath):
         raise Exception('File does not exist: '+filepath)
 
-    size_in_b = os.path.getsize(filepath)
-    size_in_mb = size_in_b / (1024 * 1024)
-    if limit > 0 and size_in_mb > limit:
-        return True
-    else:
-        return False
+    if limit > 0:
+        size_in_b = os.path.getsize(filepath)
+        size_in_mb = size_in_b / (1024 * 1024)
+        if size_in_mb > limit:
+            logger.debug('File %s is above size limit %s Mb: %s Mb' %
+                         (filepath, str(limit), str(size_in_mb)))
+            return True
+
+    return False
 
 
 def write_unicode_csv_rows(dicts, csv_writer):
@@ -228,8 +245,7 @@ def write_unicode_csv_rows(dicts, csv_writer):
             csv_writer.writerow({k: try_unicode_encode(v)
                                 if v else '' for k, v in dict_row.items()})
         except Exception, e:
-            print 'Error writing line: ' + str(dict_row)
-            print str(e)
+            logger.error('Error writing line: ' + str(dict_row), e)
             raise
 
 

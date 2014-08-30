@@ -39,7 +39,8 @@ class WriterTest(unittest.TestCase):
         csv_reader = csv.DictReader(open(self.csv_file, 'rb'))
         for line in csv_reader:
             if (line['user_url'] ==
-                    'http://www.beeradvocate.com/community/members/prager62.456999/'):
+                    'http://www.beeradvocate.com/community/members/'
+                    'prager62.456999/'):
                 self.assertEquals(line['score'], '4.75')
 
     def test_write_reviews_compressed(self):
@@ -50,7 +51,8 @@ class WriterTest(unittest.TestCase):
         csv_reader = csv.DictReader(gzip.open(self.csv_file, 'rb'))
         for line in csv_reader:
             if (line['user_url'] ==
-                    'http://www.beeradvocate.com/community/members/prager62.456999/'):
+                    'http://www.beeradvocate.com/community/members/'
+                    'prager62.456999/'):
                 self.assertEquals(line['score'], '4.75')
 
     def test_write_beer_info(self):

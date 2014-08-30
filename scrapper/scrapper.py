@@ -10,19 +10,17 @@ from bs4 import BeautifulSoup
 from bs4 import FeatureNotFound
 from bs4 import NavigableString
 
-
-logger = logging.getLogger(__name__)
-
-# Define which parser to use
 parser_lxml = "lxml"
 parser_html5 = "html5lib"
 parser = parser_lxml
+
+logger = logging.getLogger(__name__)
+
 try:
     test_soup = BeautifulSoup('<html></html>', parser)
-    print 'Using parser : ' + parser
+    logger.info('Using parser : ' + parser)
 except FeatureNotFound:
-    # print because logger may not be defined at this stage
-    print parser + ' not found, switching to '+parser_html5
+    logger.info(parser + ' not found, switching to '+parser_html5)
     parser = parser_html5
     test_soup = BeautifulSoup('<html></html>', parser)
 
@@ -307,7 +305,7 @@ def get_beer_infos(beer_profile_url):
 
         return info_dict
     except:
-        print 'Error while working on URL: '+beer_profile_url
+        logger.error('Error while working on URL: %s', beer_profile_url)
         raise
 
 
@@ -372,7 +370,7 @@ def count_number_of_ratings_and_comments_for_beer_url(beer_url):
         if nb_ratings < nb_reviews:
             logger.warn('More ratings than reviews: '+beer_name)
 
-        logger.debug(nb_ratings, nb_reviews)
+        logger.debug(str(nb_ratings), str(nb_reviews))
         return (nb_ratings, nb_reviews)
 
     except Exception:
@@ -437,8 +435,6 @@ def extract_reviews_from_url(url):
 
         empty_rating_dict = {'beer_url': beer_url, 'user_url': '',
                              'score': '', 'rdev': '', 'date': '',
-                             'look': '', 'smell': '', 'taste': '', 'feel': '',
-                             'overall': '', 'serving_type': '',
                              'review': ''}
 
         list_ratings_reviews = []
@@ -446,10 +442,6 @@ def extract_reviews_from_url(url):
 
         # Used for extracting review date
         date_pattern = re.compile('(\d+-\d+-\d+ \d+:\d+)+')
-        # Used for extracting serving type
-        type_pattern = re.compile(('type: (.+)'))
-
-        single_note_pattern = re.compile('(\d+\.?\d*)+')
 
         review_divs = soup.findAll(id='rating_fullview_content_2')
 
@@ -477,8 +469,6 @@ def extract_reviews_from_url(url):
             rating_dict['rdev'] = rdev
 
             # If there is a review, then we have more info
-            # A review is preceded by a single <br>, if no review
-            # then a double <br>
             next_el = rdev_line.next_sibling
             next_el_sibl = next_el.next_sibling
             current_el = next_el_sibl
@@ -489,44 +479,15 @@ def extract_reviews_from_url(url):
             true_siblings = [x for x in all_siblings
                              if isinstance(x, NavigableString) or not x.name]
 
-            if (not isinstance(current_el, NavigableString)
-                    and (not current_el.name or not 'br' in current_el.name)):
-                # It's a review, let's parse it
-
-                # Current element is look, taste, etc. notes
-                # Order is look, smell, taste, feel, overall
-                notes_search = single_note_pattern.findall(current_el)
-                try:
-                    if notes_search:
-                        rating_dict['look'] = float(notes_search[0])
-                        rating_dict['smell'] = float(notes_search[1])
-                        rating_dict['taste'] = float(notes_search[2])
-                        rating_dict['feel'] = float(notes_search[3])
-                        rating_dict['overall'] = float(notes_search[4])
-                    else:
-                        print 'Could not find note pattern on %s' % beer_url
-
-                except Exception:
-                    print 'Error getting notes on %s' % beer_url
-                    raise
-
-                # Second to last element is serving type
-                serving_type_raw = true_siblings[-2]
-                type_match = type_pattern.search(serving_type_raw)
-                if type_match:
-                    rating_dict['serving_type'] = type_match.group(1)
-                else:
-                    print 'Error getting serving type on %s' % beer_url
-
-                # Remaining are comments
-                review_string = " ".join(true_siblings[0: -2])
-                rating_dict['review'] = review_string
+            # It's a review, let's parse it
+            review_string = " ".join(true_siblings[0: -2])
+            rating_dict['review'] = review_string
 
             # Last is always date
             date = true_siblings[-1]
             date_match = date_pattern.match(date)
             if not date_match:
-                print 'Error getting review date on %s ' % beer_url
+                logger.warn('Error getting review date on %s ' % beer_url)
             else:
                 rating_dict['date'] = date_match.group(1)
 
@@ -535,9 +496,10 @@ def extract_reviews_from_url(url):
         return list_ratings_reviews
 
     except Exception:
-        print 'Error fetching reviews and ratings from %s' % url
+        logger.error('Error fetching reviews and ratings from %s' % url)
         if review_div:
-            print review_div
+            logger.error('Div: ')
+            logger.error(review_div)
         raise
 
 
@@ -566,7 +528,8 @@ def handle_info_key(key, valuesoup):
 def get_user_join_date(soup):
     ''' get user join date from dedicated field
     '''
-    second = soup.find_all(attrs={'class':"secondaryContent pairsJustified"}, recursive=True)[0]
+    second = soup.find_all(attrs={'class': "secondaryContent pairsJustified"},
+                           recursive=True)[0]
     for dl in second.findAll('dl'):
         print dl.dt.contents[0]
         if dl.dt.contents[0] == 'Joined:':
@@ -577,7 +540,8 @@ def get_user_join_date(soup):
 def get_user_name(soup):
     ''' get the user name in the dedicated field
     '''
-    return soup.find_all(attrs={'itemprop':"name",'class':"username"},recursive=True)[0].contents[0]
+    return soup.find_all(attrs={'itemprop': "name", 'class': "username"},
+                         recursive=True)[0].contents[0]
 
 
 def get_user_id(user_url):
@@ -626,7 +590,7 @@ def get_brewery_infos(url):
     # now the soup
     soup = make_soup(url)
     # name
-    brewery_infos['name'] = soup.findAll('div', attrs={'class' : 'titleBar'})[0].h1.contents[0]
+    brewery_infos['name'] = soup.findAll('div', attrs={'class': 'titleBar'})[0].h1.contents[0]
     baContent = soup.findAll('div', attrs={'id': 'baContent'})[0]
     # image
     brewery_infos['image_url'] = baContent.table.tr.td.img['src']

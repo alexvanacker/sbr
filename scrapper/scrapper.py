@@ -553,7 +553,7 @@ def get_user_id(user_url):
 def get_user_infos(user_url):
     ''' given a user url, returns all the relevant information we can get
     '''
-    user_infos = {'scrapped_date': '', 'user_id': '', 'user_name': '',
+    user_infos = {'user_id': '', 'user_name': '',
                   'join_date': '', 'occupation': '', 'location': '',
                   'gender': '', 'birth_year': '', 'content': '',
                   'home_page': ''}

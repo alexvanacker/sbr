@@ -531,7 +531,6 @@ def get_user_join_date(soup):
     second = soup.find_all(attrs={'class': "secondaryContent pairsJustified"},
                            recursive=True)[0]
     for dl in second.findAll('dl'):
-        print dl.dt.contents[0]
         if dl.dt.contents[0] == 'Joined:':
             return dl.dd.contents[0]
     return ''

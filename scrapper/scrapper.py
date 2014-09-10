@@ -137,14 +137,16 @@ def find_last_number_of_subpages(soup, url):
 def find_max(url):
     soup = make_soup(url)
     st = soup.body.findAll(id='baContent')[0].table.td.span.b.contents[0]
-    m = re.search('\(out of (.+?)\)', st)
-    if m:
-        found = m.group(1)
-    else:
+    first_split = st.split('out of')
+    try:
+        second_split = first_split[1].split(')')
+        max_page = second_split[0].strip()
+        int(max_page)
+        return max_page
+    except Exception, e:
         logger.error('Could not extract max number of subpages: '+url)
-        raise Exception
-    return found
-
+        raise 
+    
 
 def get_substyle_url(url):
     """From a style get all the pages of the style """
@@ -427,7 +429,7 @@ def get_beer_comments_and_ratings(beer_profile_url):
 
 def extract_reviews_from_url(url):
     try:
-
+        logger.debug('Getting reviews from %s', url)
         # Clean end of URL to get the main Beer URL
         beer_url = url
         if '?' in url:

@@ -192,13 +192,14 @@ def write_all_beers_reviews(list_url, dest_file_path, write_every_nbr=0,
                 logger.warn('Moving on to the next.')
 
         if last_page:
+            url_start = beer_url + '?hideRatings=N&start='
             # Get list of review URLs for the beer
             start = 0
-            last_page_int = int(last_page)
+            last_page_int = int(last_page) + 1
             all_nbr = range(start, last_page_int)
-            url_start = beer_url + '?hideRatings=N&start='
             # Reviews are 25 by 25
             reviews_urls.extend([url_start + str(x) for x in all_nbr[::25]])
+
     end_fetch = time.time()
     total_time = end_fetch - start_fetch
     logger.info('Done fetching review URLs.')

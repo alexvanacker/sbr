@@ -31,6 +31,10 @@ class WriterTest(unittest.TestCase):
                     'http://www.beeradvocate.com/beer/profile/26/42349/']
         writer.write_all_beers_reviews(list_url, self.csv_file, compress=False)
 
+    def test_write_review_one_page_only(self):
+        list_url = ['http://www.beeradvocate.com/beer/profile/147/129146/']
+        writer.write_all_beers_reviews(list_url, self.csv_file, compress=False)
+
     def test_write_reviews(self):
         list_url = ['http://www.beeradvocate.com/beer/profile/26/42349/']
         writer.write_all_beers_reviews(list_url, self.csv_file, compress=False)

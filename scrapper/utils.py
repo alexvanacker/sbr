@@ -34,8 +34,8 @@ def extract_date(string, current_date=None):
         string_date = time_from_string.replace(day=current_date.day,
                                                month=current_date.month,
                                                year=current_date.year,
-                                               seconds=0,
-                                               microseconds=0)
+                                               second=0,
+                                               microsecond=0)
         return string_date
         
     elif 'ago' in string:

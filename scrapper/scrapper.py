@@ -451,7 +451,7 @@ def extract_reviews_from_url(url):
             rating_dict = empty_rating_dict.copy()
 
             # user url
-            rating_dict['user_url'] = review_div.h6.a['href']
+            rating_dict['user_url'] = review_div.find(class_='username')['href']
 
             # score
             bascore = review_div.find(class_='BAscore_norm')

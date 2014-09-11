@@ -485,13 +485,10 @@ def extract_reviews_from_url(url):
             review_string = " ".join(true_siblings[0: -2])
             rating_dict['review'] = review_string
 
-            # Last is always date
-            date = true_siblings[-1]
-            date_match = date_pattern.match(date)
-            if not date_match:
-                logger.warn('Error getting review date on %s ' % beer_url)
-            else:
-                rating_dict['date'] = date_match.group(1)
+            # Date
+            muted = review_div.find(class_='muted')
+            date = muted.find_all('a')[1].contents[0]
+            # TODO: Change 'Today' etc into actual date!
 
             list_ratings_reviews.append(rating_dict)
 

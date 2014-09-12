@@ -6,9 +6,12 @@ import time
 import re
 import logging
 import logging.config
+import datetime
 from bs4 import BeautifulSoup
 from bs4 import FeatureNotFound
 from bs4 import NavigableString
+
+import utils
 
 parser_lxml = "lxml"
 parser_html5 = "html5lib"
@@ -437,7 +440,7 @@ def extract_reviews_from_url(url):
 
         empty_rating_dict = {'beer_url': beer_url, 'user_url': '',
                              'score': '', 'rdev': '', 'date': '',
-                             'review': ''}
+                             'review': '', 'scrap_time': ''}
 
         list_ratings_reviews = []
         soup = make_soup(url)
@@ -449,6 +452,15 @@ def extract_reviews_from_url(url):
 
         for review_div in review_divs:
             rating_dict = empty_rating_dict.copy()
+
+            now = datetime.datetime.now()
+            rating_dict['scrap_time'] = str(now)
+
+            # Date
+            muted = review_div.find(class_='muted')
+            date = muted.find_all('a')[1].contents[0]
+            real_date = utils.extract_date(date, current_date=now)
+            rating_dict['date'] = str(real_date)
 
             # user url
             rating_dict['user_url'] = review_div.find(class_='username')['href']
@@ -484,11 +496,6 @@ def extract_reviews_from_url(url):
             # It's a review, let's parse it
             review_string = " ".join(true_siblings[0: -2])
             rating_dict['review'] = review_string
-
-            # Date
-            muted = review_div.find(class_='muted')
-            date = muted.find_all('a')[1].contents[0]
-            # TODO: Change 'Today' etc into actual date!
 
             list_ratings_reviews.append(rating_dict)
 

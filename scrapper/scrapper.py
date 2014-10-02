@@ -466,7 +466,7 @@ def extract_reviews_from_url(url):
         for review_div in review_divs:
 
             rating_dict = empty_rating_dict.copy()
-            rating_dict['review_order'] = review_order
+            rating_dict['review_order'] = str(review_order)
             review_order += 1
 
             now = datetime.datetime.now()

@@ -7,6 +7,8 @@ import re
 import logging
 import logging.config
 import datetime
+from urlparse import urlparse
+from urlparse import parse_qs
 from bs4 import BeautifulSoup
 from bs4 import FeatureNotFound
 from bs4 import NavigableString
@@ -432,33 +434,47 @@ def get_beer_comments_and_ratings(beer_profile_url):
 
 def extract_reviews_from_url(url):
     try:
+        # Avoid raising exception... In the except section
+        review_div = None
+
         logger.debug('Getting reviews from %s', url)
         # Clean end of URL to get the main Beer URL
         beer_url = url
         if '?' in url:
             beer_url = re.sub(r'\?.*', '', url)
 
+        # Kept begin of review order int
+        review_order = 0
+        if 'start=' in url:
+            parse_result = urlparse(url)
+            query_dict = parse_qs(parse_result.query)
+            try:
+                review_order = int(query_dict['start'][0])
+            except:
+                logger.error('Could not get start index. Query string: '+str(query_dict))
+                raise
+
         empty_rating_dict = {'beer_url': beer_url, 'user_url': '',
                              'score': '', 'rdev': '', 'date': '',
-                             'review': '', 'scrap_time': ''}
+                             'review': '', 'scrap_time': '', 'review_order': ''}
 
         list_ratings_reviews = []
         soup = make_soup(url)
 
-        # Used for extracting review date
-        date_pattern = re.compile('(\d+-\d+-\d+ \d+:\d+)+')
-
         review_divs = soup.findAll(id='rating_fullview_content_2')
 
         for review_div in review_divs:
+
             rating_dict = empty_rating_dict.copy()
+            rating_dict['review_order'] = review_order
+            review_order += 1
 
             now = datetime.datetime.now()
             rating_dict['scrap_time'] = str(now)
 
             # Date
-            muted = review_div.find(class_='muted')
-            date = muted.find_all('a')[1].contents[0]
+            muted = review_div.find_all(class_='muted')
+            date = muted[-1].find_all('a')[-1].contents[0]
             real_date = utils.extract_date(date, current_date=now)
             rating_dict['date'] = str(real_date)
 

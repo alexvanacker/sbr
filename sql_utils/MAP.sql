@@ -23,6 +23,5 @@ FROM (
     		, sum(hasbought) as m 
     		, count(*) as nb_tot
     	FROM MYTABLE ) s1
-    WHERE row_number <= m and row_number <= n 
     GROUP BY memberid ) s2
 ; 

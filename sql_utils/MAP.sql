@@ -8,7 +8,7 @@ réf : https://www.kaggle.com/wiki/MeanAveragePrecision
 - row number = predicted rank. No ties. 
 
 - demo of random is easy, just consider all permutation and everything got same chance to be at any place => bouyah 
-
+AHAHA FALSE !
 */
 
 
@@ -17,7 +17,7 @@ SELECT AVG(MAP_n) as MAP_n
 FROM (
     SELECT memberid
         , sum((row_number <= m and row_number <= n)::int * hasbought/row_number)/ LEAST(max(m),n) as MAP_n
-        , sum((row_number <= m and row_number <= n)::int * /row_number)/ count(*) as MAP_n_random
+        , sum((row_number <= m and row_number <= n)::int * 1/row_number)/ count(*) as MAP_n_random
     FROM (
     	SELECT memberid 
     		, has_bought

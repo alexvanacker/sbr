@@ -6,14 +6,18 @@ def MAP(rel,n) :
     
     n is the map param
     rel is the ordered list of 1 and 0
+    good ref would be https://github.com/benhamner/Metrics/blob/master/Python/ml_metrics/average_precision.py
     """
-    m = sum(rel)
-    mn = min([m,n])
+    if n < len(rel) : 
+        rel = rel[:n]
+    n = len(rel)
     tot = 0
-    for i in range(len(rel)) : 
-        if rel[i] == 1: 
-            tot = tot + float(sum(rel[:(i+1)])) / (i+1)
-    return tot/mn
+    cnt = 0
+    for i, val in enumerate(rel) : 
+        if val == 1: 
+            cnt = cnt + 1
+            tot = tot + float(cnt) / (i+1)
+    return tot/n
 
 def RDCG(rel) : 
     """ returns random dcg 

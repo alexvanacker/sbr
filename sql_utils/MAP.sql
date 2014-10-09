@@ -3,27 +3,24 @@
 MAP calculation in sql :
 réf : https://www.kaggle.com/wiki/MeanAveragePrecision
 
-- n main parameter
+- n main parameter of map
 - has bought = 1 if user bought the product else 0
 - row number = predicted rank. No ties. 
 
-- demo of random is easy, just consider all permutation and everything got same chance to be at any place => bouyah 
-AHAHA FALSE !
+- close form of random seems to be hard to get contarry to ndcg. 
+
 */
 
-
 SELECT AVG(MAP_n) as MAP_n
-	, AVG(MAP_n_random) as MAP_n_random
 FROM (
     SELECT memberid
-        , sum((row_number <= m and row_number <= n)::int * hasbought/row_number)/ LEAST(max(m),n) as MAP_n
-        , sum((row_number <= m and row_number <= n)::int * 1/row_number)/ count(*) as MAP_n_random
+        , sum((row_number <= n)::int * hasbought * cumsum /row_number)/ LEAST(max(N),n) as MAP_n
     FROM (
     	SELECT memberid 
-    		, has_bought
-    		, row_number
-    		, sum(hasbought) as m 
-    		-- , count(*) as nb_tot
+    		, has_bought -- 0 or 1 in what really happened
+    		, row_number -- order of recommendations
+            , sum(has_bought_sth) over(PARTITION by memberid order by row_number asc) as cumsum
+    		, count(*) over (PARTITION BY memberid) as N -- nb of lines per user
     	FROM MYTABLE ) s1
     GROUP BY memberid ) s2
 ; 
